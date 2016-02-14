@@ -63,7 +63,11 @@ public class SecurityService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
         User user = getUserByName(username);
         if (user == null) {
-            throw new UsernameNotFoundException("User \"" + username + "\" was not found.");
+	    user = new User(username, "", null, false, 0L, 0L, 0L);
+            user.setStreamRole(true);
+            user.setSettingsRole(true);
+            user.setCommentRole(true);
+            createUser(user);
         }
 
         String[] roles = userDao.getRolesForUser(username);

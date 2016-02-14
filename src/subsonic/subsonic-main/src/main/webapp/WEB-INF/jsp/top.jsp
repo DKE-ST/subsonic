@@ -100,7 +100,7 @@
             </c:if>
 
             <div class="detail">
-                <a href="j_acegi_logout" target="_top"><fmt:message key="top.logout"><fmt:param value="${model.user.username}"/></fmt:message></a>
+
             </div>
         </td>
 

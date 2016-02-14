@@ -378,9 +378,9 @@ public class MediaFileService {
     private void updateChildren(MediaFile parent) {
 
         // Check timestamps.
-        if (parent.getChildrenLastUpdated().getTime() >= parent.getChanged().getTime()) {
+        /*if (parent.getChildrenLastUpdated().getTime() >= parent.getChanged().getTime()) {
             return;
-        }
+        }*/
 
         List<MediaFile> storedChildren = mediaFileDao.getChildrenOf(parent.getPath());
         Map<String, MediaFile> storedChildrenMap = new HashMap<String, MediaFile>();

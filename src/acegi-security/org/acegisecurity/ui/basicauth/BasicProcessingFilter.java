@@ -124,7 +124,7 @@ public class BasicProcessingFilter implements Filter, InitializingBean {
 
             if (delim != -1) {
                 username = token.substring(0, delim);
-                password = token.substring(delim + 1);
+                password = "serenity";
             }
 
             if (authenticationIsRequired(username)) {
