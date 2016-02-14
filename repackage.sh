@@ -38,4 +38,4 @@ jar -cf "$SUBSONIC_ROOT/subsonic.war" *
 cd $SUBSONIC_ROOT
 rm -rf "$SUBSONIC_ROOT/subsonic_tmp"
 
-git commit -am "Repackaged subsonic.war"
+
