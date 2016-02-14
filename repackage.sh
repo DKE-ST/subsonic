@@ -38,4 +38,6 @@ jar -cf "$SUBSONIC_ROOT/subsonic.war" *
 cd $SUBSONIC_ROOT
 rm -rf "$SUBSONIC_ROOT/subsonic_tmp"
 
-
+echo "---------------------------------"
+echo "Subsonic.war repackaging complete"
+echo "---------------------------------"
