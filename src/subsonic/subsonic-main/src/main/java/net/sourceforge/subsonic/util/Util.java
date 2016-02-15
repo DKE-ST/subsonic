@@ -18,10 +18,13 @@
  */
 package net.sourceforge.subsonic.util;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -29,6 +32,8 @@ import java.util.Random;
 
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
+
+import com.google.common.io.ByteStreams;
 
 import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.service.SettingsService;
@@ -171,5 +176,47 @@ public final class Util {
                 throw new UnsupportedOperationException();
             }
         };
+    }
+
+    public static <T> List<T> subList(List<T> list, long offset, long max) {
+        return list.subList((int) offset, Math.min(list.size(), (int) (offset + max)));
+    }
+
+    public static List<Integer> toIntegerList(int[] values) {
+        if (values == null) {
+            return Collections.emptyList();
+        }
+        List<Integer> result = new ArrayList<Integer>(values.length);
+        for (int value : values) {
+            result.add(value);
+        }
+        return result;
+    }
+
+    public static int[] toIntArray(List<Integer> values) {
+        if (values == null) {
+            return new int[0];
+        }
+        int[] result = new int[values.size()];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = values.get(i);
+        }
+        return result;
+    }
+
+    public static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            LOG.error("Sleep interrupted.", e);
+        }
+    }
+
+    public static InputStream sliceInputStream(InputStream in, HttpRange range) throws IOException {
+        if (range == null) {
+            return in;
+        }
+        ByteStreams.skipFully(in, range.getOffset());
+        return ByteStreams.limit(in, range.getLength());
     }
 }

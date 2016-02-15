@@ -19,7 +19,9 @@
 package net.sourceforge.subsonic.ajax;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -30,17 +32,25 @@ import javax.servlet.http.HttpServletResponse;
 import org.directwebremoting.WebContextFactory;
 import org.springframework.web.servlet.support.RequestContextUtils;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
 import net.sourceforge.subsonic.dao.MediaFileDao;
+import net.sourceforge.subsonic.dao.PlayQueueDao;
 import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.PlayQueue;
 import net.sourceforge.subsonic.domain.Player;
+import net.sourceforge.subsonic.domain.PodcastEpisode;
+import net.sourceforge.subsonic.domain.PodcastStatus;
+import net.sourceforge.subsonic.domain.SavedPlayQueue;
 import net.sourceforge.subsonic.domain.UserSettings;
 import net.sourceforge.subsonic.service.JukeboxService;
 import net.sourceforge.subsonic.service.LastFmService;
 import net.sourceforge.subsonic.service.MediaFileService;
 import net.sourceforge.subsonic.service.PlayerService;
 import net.sourceforge.subsonic.service.PlaylistService;
+import net.sourceforge.subsonic.service.PodcastService;
 import net.sourceforge.subsonic.service.RatingService;
 import net.sourceforge.subsonic.service.SearchService;
 import net.sourceforge.subsonic.service.SecurityService;
@@ -66,8 +76,10 @@ public class PlayQueueService {
     private SecurityService securityService;
     private SearchService searchService;
     private RatingService ratingService;
+    private PodcastService podcastService;
     private net.sourceforge.subsonic.service.PlaylistService playlistService;
     private MediaFileDao mediaFileDao;
+    private PlayQueueDao playQueueDao;
 
     /**
      * Returns the play queue for the player of the current user.
@@ -118,6 +130,61 @@ public class PlayQueueService {
         return convert(request, player, serverSidePlaylist, offset);
     }
 
+    public void savePlayQueue(int currentSongIndex, long positionMillis) {
+        HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
+        HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
+
+        Player player = getCurrentPlayer(request, response);
+        String username = securityService.getCurrentUsername(request);
+        PlayQueue playQueue = player.getPlayQueue();
+        List<Integer> ids = MediaFile.toIdList(playQueue.getFiles());
+
+        Integer currentId = currentSongIndex == -1 ? null : playQueue.getFile(currentSongIndex).getId();
+        SavedPlayQueue savedPlayQueue = new SavedPlayQueue(null, username, ids, currentId, positionMillis, new Date(), "Subsonic");
+        playQueueDao.savePlayQueue(savedPlayQueue);
+    }
+
+    public PlayQueueInfo loadPlayQueue() throws Exception {
+        HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
+        HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
+        Player player = getCurrentPlayer(request, response);
+        String username = securityService.getCurrentUsername(request);
+        SavedPlayQueue savedPlayQueue = playQueueDao.getPlayQueue(username);
+
+        if (savedPlayQueue == null) {
+            return convert(request, player, false);
+        }
+
+        PlayQueue playQueue = player.getPlayQueue();
+        playQueue.clear();
+        for (Integer mediaFileId : savedPlayQueue.getMediaFileIds()) {
+            MediaFile mediaFile = mediaFileService.getMediaFile(mediaFileId);
+            if (mediaFile != null) {
+                playQueue.addFiles(true, mediaFile);
+            }
+        }
+        PlayQueueInfo result = convert(request, player, false);
+
+        Integer currentId = savedPlayQueue.getCurrentMediaFileId();
+        int currentIndex = -1;
+        long positionMillis = savedPlayQueue.getPositionMillis() == null ? 0L : savedPlayQueue.getPositionMillis();
+        if (currentId != null) {
+            MediaFile current = mediaFileService.getMediaFile(currentId);
+            currentIndex = playQueue.getFiles().indexOf(current);
+            if (currentIndex != -1) {
+                result.setStartPlayerAt(currentIndex);
+                result.setStartPlayerAtPosition(positionMillis);
+            }
+        }
+
+        boolean serverSidePlaylist = !player.isExternalWithPlaylist();
+        if (serverSidePlaylist && currentIndex != -1) {
+            doSkip(request, response, currentIndex, (int) (positionMillis / 1000L));
+        }
+
+        return result;
+    }
+
     public PlayQueueInfo play(int id) throws Exception {
         HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
         HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
@@ -126,11 +193,18 @@ public class PlayQueueService {
         MediaFile file = mediaFileService.getMediaFile(id);
 
         if (file.isFile()) {
-            MediaFile dir = mediaFileService.getParentOf(file);
-            List<MediaFile> songs = mediaFileService.getChildrenOf(dir, true, false, true);
-            if (!songs.isEmpty()) {
-                int index = songs.indexOf(file);
-                songs = songs.subList(index, songs.size());
+            String username = securityService.getCurrentUsername(request);
+            boolean queueFollowingSongs = settingsService.getUserSettings(username).isQueueFollowingSongs();
+            List<MediaFile> songs;
+            if (queueFollowingSongs) {
+                MediaFile dir = mediaFileService.getParentOf(file);
+                songs = mediaFileService.getChildrenOf(dir, true, false, true);
+                if (!songs.isEmpty()) {
+                    int index = songs.indexOf(file);
+                    songs = songs.subList(index, songs.size());
+                }
+            } else {
+                songs = Arrays.asList(file);
             }
             return doPlay(request, player, songs).setStartPlayerAt(0);
         } else {
@@ -139,13 +213,23 @@ public class PlayQueueService {
         }
     }
 
-    public PlayQueueInfo playPlaylist(int id, int index) throws Exception {
+    /**
+     * @param index Start playing at this index, or play whole playlist if {@code null}.
+     */
+    public PlayQueueInfo playPlaylist(int id, Integer index) throws Exception {
         HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
         HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
 
+        String username = securityService.getCurrentUsername(request);
+        boolean queueFollowingSongs = settingsService.getUserSettings(username).isQueueFollowingSongs();
+
         List<MediaFile> files = playlistService.getFilesInPlaylist(id, true);
-        if (!files.isEmpty()) {
-            files = files.subList(index, files.size());
+        if (!files.isEmpty() && index != null) {
+            if (queueFollowingSongs) {
+                files = files.subList(index, files.size());
+            } else {
+                files = Arrays.asList(files.get(index));
+            }
         }
 
         // Remove non-present files
@@ -160,12 +244,106 @@ public class PlayQueueService {
         return doPlay(request, player, files).setStartPlayerAt(0);
     }
 
+    /**
+     * @param index Start playing at this index, or play all top songs if {@code null}.
+     */
+    public PlayQueueInfo playTopSong(int id, Integer index) throws Exception {
+        HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
+        HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
+
+        String username = securityService.getCurrentUsername(request);
+        boolean queueFollowingSongs = settingsService.getUserSettings(username).isQueueFollowingSongs();
+
+        List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(username);
+        List<MediaFile> files = lastFmService.getTopSongs(mediaFileService.getMediaFile(id), 50, musicFolders);
+        if (!files.isEmpty() && index != null) {
+            if (queueFollowingSongs) {
+                files = files.subList(index, files.size());
+            } else {
+                files = Arrays.asList(files.get(index));
+            }
+        }
+
+        Player player = getCurrentPlayer(request, response);
+        return doPlay(request, player, files).setStartPlayerAt(0);
+    }
+
+    public PlayQueueInfo playPodcastChannel(int id) throws Exception {
+        HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
+        HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
+
+        List<PodcastEpisode> episodes = podcastService.getEpisodes(id);
+        List<MediaFile> files = new ArrayList<MediaFile>();
+        for (PodcastEpisode episode : episodes) {
+            if (episode.getStatus() == PodcastStatus.COMPLETED) {
+                MediaFile mediaFile = mediaFileService.getMediaFile(episode.getMediaFileId());
+                if (mediaFile != null && mediaFile.isPresent()) {
+                    files.add(mediaFile);
+                }
+            }
+        }
+        Player player = getCurrentPlayer(request, response);
+        return doPlay(request, player, files).setStartPlayerAt(0);
+    }
+
+    public PlayQueueInfo playPodcastEpisode(int id) throws Exception {
+        HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
+        HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
+
+        PodcastEpisode episode = podcastService.getEpisode(id, false);
+        List<PodcastEpisode> allEpisodes = podcastService.getEpisodes(episode.getChannelId());
+        List<MediaFile> files = new ArrayList<MediaFile>();
+
+        String username = securityService.getCurrentUsername(request);
+        boolean queueFollowingSongs = settingsService.getUserSettings(username).isQueueFollowingSongs();
+
+        for (PodcastEpisode ep : allEpisodes) {
+            if (ep.getStatus() == PodcastStatus.COMPLETED) {
+                MediaFile mediaFile = mediaFileService.getMediaFile(ep.getMediaFileId());
+                if (mediaFile != null && mediaFile.isPresent() &&
+                    (ep.getId().equals(episode.getId()) || queueFollowingSongs && !files.isEmpty())) {
+                    files.add(mediaFile);
+                }
+            }
+        }
+        Player player = getCurrentPlayer(request, response);
+        return doPlay(request, player, files).setStartPlayerAt(0);
+    }
+
+    public PlayQueueInfo playNewestPodcastEpisode(Integer index) throws Exception {
+        HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
+        HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
+
+        List<PodcastEpisode> episodes = podcastService.getNewestEpisodes(10);
+        List<MediaFile> files = Lists.transform(episodes, new Function<PodcastEpisode, MediaFile>() {
+            @Override
+            public MediaFile apply(PodcastEpisode episode) {
+                return mediaFileService.getMediaFile(episode.getMediaFileId());
+            }
+        });
+
+        String username = securityService.getCurrentUsername(request);
+        boolean queueFollowingSongs = settingsService.getUserSettings(username).isQueueFollowingSongs();
+
+        if (!files.isEmpty() && index != null) {
+            if (queueFollowingSongs) {
+                files = files.subList(index, files.size());
+            } else {
+                files = Arrays.asList(files.get(index));
+            }
+        }
+
+        Player player = getCurrentPlayer(request, response);
+        return doPlay(request, player, files).setStartPlayerAt(0);
+    }
+
     public PlayQueueInfo playStarred() throws Exception {
         HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
         HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
 
         String username = securityService.getCurrentUsername(request);
-        List<MediaFile> files = mediaFileDao.getStarredFiles(0, Integer.MAX_VALUE, username);
+        List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(username);
+        List<MediaFile> files = mediaFileDao.getStarredFiles(0, Integer.MAX_VALUE, username, musicFolders);
         Player player = getCurrentPlayer(request, response);
         return doPlay(request, player, files).setStartPlayerAt(0);
     }
@@ -175,29 +353,31 @@ public class PlayQueueService {
         HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
         String username = securityService.getCurrentUsername(request);
         UserSettings userSettings = settingsService.getUserSettings(securityService.getCurrentUsername(request));
-        MusicFolder mediaFolder =  settingsService.getMusicFolderById(userSettings.getSelectedMusicFolderId());
 
+        MusicFolder selectedMusicFolder = settingsService.getSelectedMusicFolder(username);
+        List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(username,
+                                                                                selectedMusicFolder == null ? null : selectedMusicFolder.getId());
         List<MediaFile> albums;
         if ("highest".equals(albumListType)) {
-            albums = ratingService.getHighestRatedAlbums(offset, count, mediaFolder);
+            albums = ratingService.getHighestRatedAlbumsForUser(offset, count, username, musicFolders);
         } else if ("frequent".equals(albumListType)) {
-            albums = mediaFileService.getMostFrequentlyPlayedAlbums(offset, count, mediaFolder);
+            albums = mediaFileService.getMostFrequentlyPlayedAlbums(offset, count, musicFolders);
         } else if ("recent".equals(albumListType)) {
-            albums = mediaFileService.getMostRecentlyPlayedAlbums(offset, count, mediaFolder);
+            albums = mediaFileService.getMostRecentlyPlayedAlbums(offset, count, musicFolders);
         } else if ("newest".equals(albumListType)) {
-            albums = mediaFileService.getNewestAlbums(offset, count, mediaFolder);
+            albums = mediaFileService.getNewestAlbums(offset, count, musicFolders);
         } else if ("starred".equals(albumListType)) {
-            albums = mediaFileService.getStarredAlbums(offset, count, username, mediaFolder);
+            albums = mediaFileService.getStarredAlbums(offset, count, username, musicFolders);
         } else if ("random".equals(albumListType)) {
-            albums = searchService.getRandomAlbums(count, mediaFolder);
+            albums = searchService.getRandomAlbums(count, musicFolders);
         } else if ("alphabetical".equals(albumListType)) {
-            albums = mediaFileService.getAlphabeticalAlbums(offset, count, true, mediaFolder);
+            albums = mediaFileService.getAlphabeticalAlbums(offset, count, true, musicFolders);
         } else if ("decade".equals(albumListType)) {
             int fromYear = Integer.parseInt(decade);
             int toYear = fromYear + 9;
-            albums = mediaFileService.getAlbumsByYear(offset, count, fromYear, toYear, mediaFolder);
+            albums = mediaFileService.getAlbumsByYear(offset, count, fromYear, toYear, musicFolders);
         } else if ("genre".equals(albumListType)) {
-            albums = mediaFileService.getAlbumsByGenre(offset, count, genre, mediaFolder);
+            albums = mediaFileService.getAlbumsByGenre(offset, count, genre, musicFolders);
         } else {
             albums = Collections.emptyList();
         }
@@ -238,7 +418,9 @@ public class PlayQueueService {
         HttpServletRequest request = WebContextFactory.get().getHttpServletRequest();
         HttpServletResponse response = WebContextFactory.get().getHttpServletResponse();
         MediaFile artist = mediaFileService.getMediaFile(id);
-        List<MediaFile> similarSongs = lastFmService.getSimilarSongs(artist, count);
+        String username = securityService.getCurrentUsername(request);
+        List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(username);
+        List<MediaFile> similarSongs = lastFmService.getSimilarSongs(artist, count, musicFolders);
         Player player = getCurrentPlayer(request, response);
         player.getPlayQueue().addFiles(false, similarSongs);
         return convert(request, player, true).setStartPlayerAt(0);
@@ -418,36 +600,38 @@ public class PlayQueueService {
         return convert(request, player, false);
     }
 
-    public void setGain(float gain) {
+    public void setJukeboxGain(float gain) {
         jukeboxService.setGain(gain);
     }
 
-    private PlayQueueInfo convert(HttpServletRequest request, Player player, boolean sendM3U) throws Exception {
-        return convert(request, player, sendM3U, 0);
+    public void setJukeboxMute(boolean mute) {
+        jukeboxService.setMute(mute);
     }
 
-    private PlayQueueInfo convert(HttpServletRequest request, Player player, boolean sendM3U, int offset) throws Exception {
+    private PlayQueueInfo convert(HttpServletRequest request, Player player, boolean serverSidePlaylist) throws Exception {
+        return convert(request, player, serverSidePlaylist, 0);
+    }
+
+    private PlayQueueInfo convert(HttpServletRequest request, Player player, boolean serverSidePlaylist, int offset) throws Exception {
         String url = request.getRequestURL().toString();
 
-        if (sendM3U && player.isJukebox()) {
+        if (serverSidePlaylist && player.isJukebox()) {
             jukeboxService.updateJukebox(player, offset);
         }
         boolean isCurrentPlayer = player.getIpAddress() != null && player.getIpAddress().equals(request.getRemoteAddr());
 
         boolean m3uSupported = player.isExternal() || player.isExternalWithPlaylist();
-        sendM3U = player.isAutoControlEnabled() && m3uSupported && isCurrentPlayer && sendM3U;
+        serverSidePlaylist = player.isAutoControlEnabled() && m3uSupported && isCurrentPlayer && serverSidePlaylist;
         Locale locale = RequestContextUtils.getLocale(request);
 
         List<PlayQueueInfo.Entry> entries = new ArrayList<PlayQueueInfo.Entry>();
         PlayQueue playQueue = player.getPlayQueue();
-        String localIp = settingsService.getLocalIpAddress();
-        int localPort = settingsService.getPort();
 
         for (MediaFile file : playQueue.getFiles()) {
 
             String albumUrl = url.replaceFirst("/dwr/.*", "/main.view?id=" + file.getId());
-            String streamUrl = url.replaceFirst("/dwr/.*", "/stream?player=" + player.getId() + "&id=" + file.getId());
-            String coverArtUrl = url.replaceFirst("/dwr/.*", "/coverArt.view?id=" + file.getId());
+            String streamUrl = url.replaceFirst("/dwr/.*", "/stream?player=" + player.getId() + "&id=" + file.getId() + "&auth=" + file.getHash());
+            String coverArtUrl = url.replaceFirst("/dwr/.*", "/coverArt.view?id=" + file.getId() + "&auth=" + file.getHash());
 
             // Rewrite URLs in case we're behind a proxy.
             if (settingsService.isRewriteUrlEnabled()) {
@@ -456,27 +640,21 @@ public class PlayQueueService {
                 streamUrl = StringUtil.rewriteUrl(streamUrl, referer);
             }
 
-            boolean urlRedirectionEnabled = settingsService.isUrlRedirectionEnabled();
-            String urlRedirectFrom = settingsService.getUrlRedirectFrom();
-            String urlRedirectContextPath = settingsService.getUrlRedirectContextPath();
-
-            String remoteStreamUrl = StringUtil.rewriteRemoteUrl(streamUrl, urlRedirectionEnabled, urlRedirectFrom,
-                    urlRedirectContextPath, localIp, localPort);
-            String remoteCoverArtUrl = StringUtil.rewriteRemoteUrl(coverArtUrl, urlRedirectionEnabled, urlRedirectFrom,
-                    urlRedirectContextPath, localIp, localPort);
+            String remoteStreamUrl = settingsService.rewriteRemoteUrl(streamUrl);
+            String remoteCoverArtUrl = settingsService.rewriteRemoteUrl(coverArtUrl);
 
             String format = formatFormat(player, file);
             String username = securityService.getCurrentUsername(request);
             boolean starred = mediaFileService.getMediaFileStarredDate(file.getId(), username) != null;
-            entries.add(new PlayQueueInfo.Entry(file.getId(), file.getTrackNumber(), file.getTitle(), file.getArtist(),
+            entries.add(new PlayQueueInfo.Entry(file.getId(), file.getHash(), file.getTrackNumber(), file.getTitle(), file.getArtist(),
                     file.getAlbumName(), file.getGenre(), file.getYear(), formatBitRate(file),
                     file.getDurationSeconds(), file.getDurationString(), format, formatContentType(format),
                     formatFileSize(file.getFileSize(), locale), starred, albumUrl, streamUrl, remoteStreamUrl,
                     coverArtUrl, remoteCoverArtUrl));
         }
         boolean isStopEnabled = playQueue.getStatus() == PlayQueue.Status.PLAYING && !player.isExternalWithPlaylist();
-        float gain = jukeboxService.getGain();
-        return new PlayQueueInfo(entries, playQueue.getIndex(), isStopEnabled, playQueue.isRepeatEnabled(), sendM3U, gain);
+        return new PlayQueueInfo(entries, isStopEnabled, playQueue.isRepeatEnabled(), serverSidePlaylist,
+                                 jukeboxService.getGain(), jukeboxService.isMute());
     }
 
     private String formatFileSize(Long fileSize, Locale locale) {
@@ -544,8 +722,16 @@ public class PlayQueueService {
         this.securityService = securityService;
     }
 
+    public void setPodcastService(PodcastService podcastService) {
+        this.podcastService = podcastService;
+    }
+
     public void setMediaFileDao(MediaFileDao mediaFileDao) {
         this.mediaFileDao = mediaFileDao;
+    }
+
+    public void setPlayQueueDao(PlayQueueDao playQueueDao) {
+        this.playQueueDao = playQueueDao;
     }
 
     public void setPlaylistService(PlaylistService playlistService) {
