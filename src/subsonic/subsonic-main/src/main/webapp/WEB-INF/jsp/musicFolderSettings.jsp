@@ -4,8 +4,21 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+
+    <script type="text/javascript">
+        function init() {
+            $("#newMusicFolderName").attr("placeholder", "<fmt:message key="musicfoldersettings.name"/>");
+            $("#newMusicFolderPath").attr("placeholder", "<fmt:message key="musicfoldersettings.path"/>");
+
+            <c:if test="${command.reload}">
+            parent.frames.upper.location.href="top.view?";
+            parent.frames.left.location.href="left.view?";
+            parent.frames.right.location.href="right.view?";
+            </c:if>
+        }
+    </script>
 </head>
-<body class="mainframe bgcolor1">
+<body class="mainframe bgcolor1" onload="init()">
 
 <c:import url="settingsHeader.jsp">
     <c:param name="cat" value="musicFolder"/>
@@ -33,20 +46,27 @@
         </tr>
     </c:forEach>
 
-    <tr>
-        <th colspan="4" align="left" style="padding-top:1em"><fmt:message key="musicfoldersettings.add"/></th>
-    </tr>
+    <c:if test="${not empty command.musicFolders}">
+        <tr>
+            <th colspan="4" align="left" style="padding-top:1em"><fmt:message key="musicfoldersettings.add"/></th>
+        </tr>
+    </c:if>
 
     <tr>
-        <td><form:input path="newMusicFolder.name" size="20"/></td>
-        <td><form:input path="newMusicFolder.path" size="40"/></td>
+        <td><form:input id="newMusicFolderName" path="newMusicFolder.name" size="20"/></td>
+        <td><form:input id="newMusicFolderPath" path="newMusicFolder.path" size="40"/></td>
         <td align="center" style="padding-left:1em"><form:checkbox path="newMusicFolder.enabled" cssClass="checkbox"/></td>
         <td></td>
     </tr>
 
 </table>
 
-    <div style="padding-top: 1.2em;padding-bottom: 0.3em">
+    <p><i class="fa fa-chevron-right icon"></i>&nbsp;<a href="userSettings.view"><fmt:message key="musicfoldersettings.access"/></a></p>
+    <p class="detail" style="width:60%;white-space:normal;margin-top:-10px;">
+        <fmt:message key="musicfoldersettings.access.description"/>
+    </p>
+
+    <div style="padding-top: 0.5em;padding-bottom: 0.3em">
         <span style="white-space: nowrap">
             <fmt:message key="musicfoldersettings.scan"/>
             <form:select path="interval">
@@ -69,7 +89,7 @@
         </span>
     </div>
 
-    <p class="forward"><a href="musicFolderSettings.view?scanNow"><fmt:message key="musicfoldersettings.scannow"/></a></p>
+    <p><i class="fa fa-chevron-right icon"></i>&nbsp;<a href="musicFolderSettings.view?scanNow"><fmt:message key="musicfoldersettings.scannow"/></a></p>
 
     <c:if test="${command.scanning}">
         <p style="width:60%"><b><fmt:message key="musicfoldersettings.nowscanning"/></b></p>
@@ -84,7 +104,7 @@
         <fmt:message key="musicfoldersettings.fastcache.description"/>
     </p>
 
-    <p class="forward"><a href="musicFolderSettings.view?expunge"><fmt:message key="musicfoldersettings.expunge"/></a></p>
+    <p><i class="fa fa-chevron-right icon"></i>&nbsp;<a href="musicFolderSettings.view?expunge"><fmt:message key="musicfoldersettings.expunge"/></a></p>
     <p class="detail" style="width:60%;white-space:normal;margin-top:-10px;">
         <fmt:message key="musicfoldersettings.expunge.description"/>
     </p>
@@ -104,13 +124,5 @@
     </p>
 
 </form:form>
-
-<c:if test="${command.reload}">
-    <script type="text/javascript">
-        parent.frames.upper.location.href="top.view?";
-        parent.frames.left.location.href="left.view?";
-        parent.frames.right.location.href="right.view?";
-    </script>
-</c:if>
 
 </body></html>

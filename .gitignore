@@ -3,3 +3,4 @@ src/acegi-security/target
 
 src/subsonic/subsonic-main/target
 src/subsonic/subsonic-rest-api/target
+src/subsonic/subsonic-sonos-api/target

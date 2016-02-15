@@ -26,7 +26,6 @@ import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.service.MediaScannerService;
 import net.sourceforge.subsonic.service.SettingsService;
 
-import org.apache.commons.lang.StringUtils;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.SimpleFormController;
 import org.springframework.web.servlet.view.RedirectView;
@@ -46,12 +45,13 @@ public class MusicFolderSettingsController extends SimpleFormController {
     private MediaScannerService mediaScannerService;
     private ArtistDao artistDao;
     private AlbumDao albumDao;
-    private MediaFileDao mediaFolderDao;
+    private MediaFileDao mediaFileDao;
 
     protected Object formBackingObject(HttpServletRequest request) throws Exception {
         MusicFolderSettingsCommand command = new MusicFolderSettingsCommand();
 
         if (request.getParameter("scanNow") != null) {
+            settingsService.clearMusicFolderCache();
             mediaScannerService.scanLibrary();
         }
         if (request.getParameter("expunge") != null) {
@@ -72,7 +72,7 @@ public class MusicFolderSettingsController extends SimpleFormController {
     private void expunge() {
         artistDao.expunge();
         albumDao.expunge();
-        mediaFolderDao.expunge();
+        mediaFileDao.expunge();
     }
 
     private List<MusicFolderSettingsCommand.MusicFolderInfo> wrap(List<MusicFolder> musicFolders) {
@@ -129,7 +129,7 @@ public class MusicFolderSettingsController extends SimpleFormController {
         this.albumDao = albumDao;
     }
 
-    public void setMediaFolderDao(MediaFileDao mediaFolderDao) {
-        this.mediaFolderDao = mediaFolderDao;
+    public void setMediaFileDao(MediaFileDao mediaFileDao) {
+        this.mediaFileDao = mediaFileDao;
     }
 }
