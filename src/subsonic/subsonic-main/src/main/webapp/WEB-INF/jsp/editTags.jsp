@@ -101,10 +101,9 @@
     }
 </script>
 
-<h1 style="padding-bottom:0.5em"><fmt:message key="edittags.title"/></h1>
-
+<h1><fmt:message key="edittags.title"/></h1>
 <sub:url value="main.view" var="backUrl"><sub:param name="id" value="${model.id}"/></sub:url>
-<i class="fa fa-chevron-left icon"></i>&nbsp;<a href="${backUrl}"><fmt:message key="common.back"/></a>
+<div class="back"><a href="${backUrl}"><fmt:message key="common.back"/></a></div>
 
 <table class="ruleTable indent">
     <tr>

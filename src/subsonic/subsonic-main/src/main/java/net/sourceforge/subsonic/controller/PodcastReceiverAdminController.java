@@ -23,7 +23,6 @@ import net.sourceforge.subsonic.domain.PodcastStatus;
 import net.sourceforge.subsonic.service.PodcastService;
 import net.sourceforge.subsonic.util.StringUtil;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.AbstractController;
 import org.springframework.web.servlet.view.RedirectView;
@@ -45,42 +44,48 @@ public class PodcastReceiverAdminController extends AbstractController {
 
     @Override
     protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        Integer channelId = ServletRequestUtils.getIntParameter(request, "channelId");
+        handleParameters(request);
+        return new ModelAndView(new RedirectView("podcastReceiver.view?expandedChannels=" + request.getParameter("expandedChannels")));
+    }
 
+    private void handleParameters(HttpServletRequest request) {
         if (request.getParameter("add") != null) {
             String url = StringUtils.trim(request.getParameter("add"));
             podcastService.createChannel(url);
-            return new ModelAndView(new RedirectView("podcastChannels.view"));
         }
-        if (request.getParameter("downloadEpisode") != null) {
-            download(StringUtil.parseInts(request.getParameter("downloadEpisode")));
-            return new ModelAndView(new RedirectView("podcastChannel.view?id=" + channelId));
+        if (request.getParameter("downloadChannel") != null ||
+            request.getParameter("downloadEpisode") != null) {
+            download(StringUtil.parseInts(request.getParameter("downloadChannel")),
+                     StringUtil.parseInts(request.getParameter("downloadEpisode")));
         }
         if (request.getParameter("deleteChannel") != null) {
-            podcastService.deleteChannel(channelId);
-            return new ModelAndView(new RedirectView("podcastChannels.view"));
+            for (int channelId : StringUtil.parseInts(request.getParameter("deleteChannel"))) {
+                podcastService.deleteChannel(channelId);
+            }
         }
         if (request.getParameter("deleteEpisode") != null) {
             for (int episodeId : StringUtil.parseInts(request.getParameter("deleteEpisode"))) {
                 podcastService.deleteEpisode(episodeId, true);
             }
-            return new ModelAndView(new RedirectView("podcastChannel.view?id=" + channelId));
         }
         if (request.getParameter("refresh") != null) {
-            if (channelId != null) {
-                podcastService.refreshChannel(channelId, true);
-                return new ModelAndView(new RedirectView("podcastChannel.view?id=" + channelId));
-            } else {
-                podcastService.refreshAllChannels(true);
-                return new ModelAndView(new RedirectView("podcastChannels.view"));
+            podcastService.refreshAllChannels(true);
+        }
+    }
+
+    private void download(int[] channelIds, int[] episodeIds) {
+        SortedSet<Integer> uniqueEpisodeIds = new TreeSet<Integer>();
+        for (int episodeId : episodeIds) {
+            uniqueEpisodeIds.add(episodeId);
+        }
+        for (int channelId : channelIds) {
+            List<PodcastEpisode> episodes = podcastService.getEpisodes(channelId, false);
+            for (PodcastEpisode episode : episodes) {
+                uniqueEpisodeIds.add(episode.getId());
             }
         }
 
-        return new ModelAndView(new RedirectView("podcastChannels.view"));
-    }
-
-    private void download(int[] episodeIds) {
-        for (Integer episodeId : episodeIds) {
+        for (Integer episodeId : uniqueEpisodeIds) {
             PodcastEpisode episode = podcastService.getEpisode(episodeId, false);
             if (episode != null && episode.getUrl() != null &&
                 (episode.getStatus() == PodcastStatus.NEW ||

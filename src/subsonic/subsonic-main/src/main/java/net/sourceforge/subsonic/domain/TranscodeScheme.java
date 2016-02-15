@@ -101,13 +101,4 @@ public enum TranscodeScheme {
         }
         return null;
     }
-
-    public static TranscodeScheme fromMaxBitRate(int maxBitRate) {
-        for (TranscodeScheme transcodeScheme : TranscodeScheme.values()) {
-            if (maxBitRate == transcodeScheme.getMaxBitRate()) {
-                return transcodeScheme;
-            }
-        }
-        return null;
-    }
 }

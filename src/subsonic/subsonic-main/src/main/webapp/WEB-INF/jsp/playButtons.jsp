@@ -11,12 +11,20 @@ PARAMETERS
   starEnabled: Whether to show star/unstar controls (default false).
   starred: Whether the file is currently starred.
   asTable: Whether to put the images in td tags.
-  onPlay: Overrides the javascript used for the play action.
 --%>
 
 <c:if test="${param.starEnabled}">
     <c:if test="${param.asTable}"><td class="fit"></c:if>
-    <i class="fa ${param.starred ? 'fa-star starred' : 'fa-star-o'} clickable" onclick="toggleStar(${param.id}, this)"></i>
+    <c:choose>
+        <c:when test="${param.starred}">
+            <img id="starImage${param.id}" src="<spring:theme code="ratingOnImage"/>" alt="" style="cursor:pointer"
+                 onclick="toggleStar(${param.id}, '#starImage${param.id}'); return false;">
+        </c:when>
+        <c:otherwise>
+            <img id="starImage${param.id}" src="<spring:theme code="ratingOffImage"/>" alt="" style="cursor:pointer"
+                 onclick="toggleStar(${param.id}, '#starImage${param.id}'); return false;">
+        </c:otherwise>
+    </c:choose>
     <c:if test="${param.asTable}"></td></c:if>
 </c:if>
 
@@ -27,13 +35,13 @@ PARAMETERS
             <sub:url value="/videoPlayer.view" var="videoUrl">
                 <sub:param name="id" value="${param.id}"/>
             </sub:url>
-            <i class="fa fa-play clickable icon" onclick="parent.frames.main.location.href='${videoUrl}'" title="<fmt:message key="common.play"/>"></i>
-        </c:when>
-        <c:when test="${not empty param.onPlay}">
-            <i class="fa fa-play clickable icon" onclick="${param.onPlay}" title="<fmt:message key="common.play"/>"></i>
+            <a href="${videoUrl}" target="main">
+                <img src="<spring:theme code="playImage"/>" alt="<fmt:message key="common.play"/>"
+                     title="<fmt:message key="common.play"/>"></a>
         </c:when>
         <c:otherwise>
-            <i class="fa fa-play clickable icon" onclick="top.playQueue.onPlay(${param.id})" title="<fmt:message key="common.play"/>"></i>
+            <img src="<spring:theme code="playImage"/>" alt="<fmt:message key="common.play"/>" style="cursor:pointer"
+                 onclick="top.playQueue.onPlay(${param.id}); return false;" title="<fmt:message key="common.play"/>">
         </c:otherwise>
     </c:choose>
 </c:if>
@@ -41,15 +49,17 @@ PARAMETERS
 
 <c:if test="${param.asTable}"><td class="fit"></c:if>
 <c:if test="${(empty param.addEnabled or param.addEnabled) and not param.video}">
-    <i class="fa fa-plus clickable icon" title="<fmt:message key="main.addlast"/>"
-       onclick="top.playQueue.onAdd(${param.id}); $().toastmessage('showSuccessToast', '<fmt:message key="main.addlast.toast"/>')"></i>
+    <img id="add${param.id}" src="<spring:theme code="addImage"/>" alt="<fmt:message key="main.addlast"/>"
+         onclick="top.playQueue.onAdd(${param.id}); $().toastmessage('showSuccessToast', '<fmt:message key="main.addlast.toast"/>'); return false;"
+         style="cursor:pointer" title="<fmt:message key="main.addlast"/>">
 </c:if>
 <c:if test="${param.asTable}"></td></c:if>
 
 <c:if test="${param.asTable}"><td class="fit"></c:if>
 <c:if test="${(empty param.addEnabled or param.addEnabled) and not param.video}">
-    <i class="fa fa-arrow-right clickable icon" title="<fmt:message key="main.addnext"/>"
-       onclick="top.playQueue.onAddNext(${param.id}); $().toastmessage('showSuccessToast', '<fmt:message key="main.addnext.toast"/>')"></i>
+    <img id="add${param.id}" src="<spring:theme code="addNextImage"/>" alt="<fmt:message key="main.addnext"/>"
+         onclick="top.playQueue.onAddNext(${param.id}); $().toastmessage('showSuccessToast', '<fmt:message key="main.addnext.toast"/>'); return false;"
+         style="cursor:pointer" title="<fmt:message key="main.addnext"/>">
 </c:if>
 <c:if test="${param.asTable}"></td></c:if>
 
@@ -58,6 +68,8 @@ PARAMETERS
     <sub:url value="/download.view" var="downloadUrl">
         <sub:param name="id" value="${param.id}"/>
     </sub:url>
-    <i class="fa fa-download clickable icon" title="<fmt:message key="common.download"/>" onclick="location.href='${downloadUrl}'"></i>
+    <a href="${downloadUrl}">
+        <img src="<spring:theme code="downloadImage"/>" alt="<fmt:message key="common.download"/>"
+             title="<fmt:message key="common.download"/>" ></a>
 </c:if>
 <c:if test="${param.asTable}"></td></c:if>

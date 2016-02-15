@@ -35,7 +35,6 @@ import org.springframework.dao.DataAccessException;
 import net.sf.ehcache.Ehcache;
 import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.dao.UserDao;
-import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.User;
 import net.sourceforge.subsonic.util.FileUtil;
@@ -64,7 +63,7 @@ public class SecurityService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
         User user = getUserByName(username);
         if (user == null) {
-            user = new User(username.toLowerCase(), "", null, false, 0L, 0L, 0L);
+	    user = new User(username, "", null, false, 0L, 0L, 0L);
             user.setStreamRole(true);
             user.setSettingsRole(true);
             user.setCommentRole(true);
@@ -152,7 +151,6 @@ public class SecurityService implements UserDetailsService {
      */
     public void createUser(User user) {
         userDao.createUser(user);
-        settingsService.setMusicFoldersForUser(user.getUsername(), MusicFolder.toIdList(settingsService.getAllMusicFolders()));
         LOG.info("Created user " + user.getUsername());
     }
 
@@ -271,27 +269,6 @@ public class SecurityService implements UserDetailsService {
             return settingsService.getPodcastFolder();
         }
         return null;
-    }
-
-    public boolean isFolderAccessAllowed(MediaFile file, String username) {
-        if (isInPodcastFolder(file.getFile())) {
-            return true;
-        }
-
-        for (MusicFolder musicFolder : settingsService.getMusicFoldersForUser(username)) {
-            if (musicFolder.getPath().getPath().equals(file.getFolder())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public boolean isAuthenticated(MediaFile mediaFile, HttpServletRequest request) {
-        boolean ok = mediaFile.getHash().equals(request.getParameter("auth"));
-        if (!ok) {
-            LOG.warn("Unauthenticated access attempt: " + mediaFile);
-        }
-        return ok;
     }
 
     /**

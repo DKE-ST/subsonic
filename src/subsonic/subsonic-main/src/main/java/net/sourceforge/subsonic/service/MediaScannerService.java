@@ -174,16 +174,8 @@ public class MediaScannerService {
             // Recurse through all files on disk.
             for (MusicFolder musicFolder : settingsService.getAllMusicFolders()) {
                 MediaFile root = mediaFileService.getMediaFile(musicFolder.getPath(), false);
-                scanFile(root, musicFolder, lastScanned, albumCount, genres, false);
+                scanFile(root, musicFolder, lastScanned, albumCount, genres);
             }
-
-            // Scan podcast folder.
-            File podcastFolder = new File(settingsService.getPodcastFolder());
-            if (podcastFolder.exists()) {
-                scanFile(mediaFileService.getMediaFile(podcastFolder), new MusicFolder(podcastFolder, null, true, null),
-                         lastScanned, albumCount, genres, true);
-            }
-
             LOG.info("Scanned media library with " + scanCount + " entries.");
 
             LOG.info("Marking non-present files.");
@@ -217,7 +209,7 @@ public class MediaScannerService {
     }
 
     private void scanFile(MediaFile file, MusicFolder musicFolder, Date lastScanned,
-                          Map<String, Integer> albumCount, Genres genres, boolean isPodcast) {
+                          Map<String, Integer> albumCount, Genres genres) {
         scanCount++;
         if (scanCount % 250 == 0) {
             LOG.info("Scanned media library with " + scanCount + " entries.");
@@ -233,16 +225,14 @@ public class MediaScannerService {
 
         if (file.isDirectory()) {
             for (MediaFile child : mediaFileService.getChildrenOf(file, true, false, false, false)) {
-                scanFile(child, musicFolder, lastScanned, albumCount, genres, isPodcast);
+                scanFile(child, musicFolder, lastScanned, albumCount, genres);
             }
             for (MediaFile child : mediaFileService.getChildrenOf(file, false, true, false, false)) {
-                scanFile(child, musicFolder, lastScanned, albumCount, genres, isPodcast);
+                scanFile(child, musicFolder, lastScanned, albumCount, genres);
             }
         } else {
-            if (!isPodcast) {
-                updateAlbum(file, musicFolder, lastScanned, albumCount);
-                updateArtist(file, musicFolder, lastScanned, albumCount);
-            }
+            updateAlbum(file, lastScanned, albumCount);
+            updateArtist(file, lastScanned, albumCount);
             statistics.incrementSongs(1);
         }
 
@@ -271,7 +261,7 @@ public class MediaScannerService {
         }
     }
 
-    private void updateAlbum(MediaFile file, MusicFolder musicFolder, Date lastScanned, Map<String, Integer> albumCount) {
+    private void updateAlbum(MediaFile file, Date lastScanned, Map<String, Integer> albumCount) {
         String artist = file.getAlbumArtist() != null ? file.getAlbumArtist() : file.getArtist();
         if (file.getAlbumName() == null || artist == null || file.getParentPath() == null || !file.isAudio()) {
             return;
@@ -285,20 +275,21 @@ public class MediaScannerService {
             album.setArtist(artist);
             album.setCreated(file.getChanged());
         }
-        if (file.getYear() != null) {
+        if (album.getCoverArtPath() == null) {
+            MediaFile parent = mediaFileService.getParentOf(file);
+            if (parent != null) {
+                album.setCoverArtPath(parent.getCoverArtPath());
+            }
+        }
+        if (album.getYear() == null) {
             album.setYear(file.getYear());
         }
-        if (file.getGenre() != null) {
+        if (album.getGenre() == null) {
             album.setGenre(file.getGenre());
-        }
-        MediaFile parent = mediaFileService.getParentOf(file);
-        if (parent != null && parent.getCoverArtPath() != null) {
-            album.setCoverArtPath(parent.getCoverArtPath());
         }
 
         boolean firstEncounter = !lastScanned.equals(album.getLastScanned());
         if (firstEncounter) {
-            album.setFolderId(musicFolder.getId());
             album.setDurationSeconds(0);
             album.setSongCount(0);
             Integer n = albumCount.get(artist);
@@ -310,6 +301,7 @@ public class MediaScannerService {
         if (file.isAudio()) {
             album.setSongCount(album.getSongCount() + 1);
         }
+
         album.setLastScanned(lastScanned);
         album.setPresent(true);
         albumDao.createOrUpdateAlbum(album);
@@ -324,7 +316,7 @@ public class MediaScannerService {
         }
     }
 
-    private void updateArtist(MediaFile file, MusicFolder musicFolder, Date lastScanned, Map<String, Integer> albumCount) {
+    private void updateArtist(MediaFile file, Date lastScanned, Map<String, Integer> albumCount) {
         if (file.getAlbumArtist() == null || !file.isAudio()) {
             return;
         }
@@ -342,9 +334,6 @@ public class MediaScannerService {
         }
         boolean firstEncounter = !lastScanned.equals(artist.getLastScanned());
 
-        if (firstEncounter) {
-            artist.setFolderId(musicFolder.getId());
-        }
         Integer n = albumCount.get(artist.getName());
         artist.setAlbumCount(n == null ? 0 : n);
 
@@ -353,7 +342,7 @@ public class MediaScannerService {
         artistDao.createOrUpdateArtist(artist);
 
         if (firstEncounter) {
-            searchService.index(artist, musicFolder);
+            searchService.index(artist);
         }
     }
 

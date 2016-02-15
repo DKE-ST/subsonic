@@ -18,6 +18,10 @@
  */
 package net.sourceforge.subsonic.service;
 
+import javax.xml.parsers.SAXParser;
+
+import net.sourceforge.subsonic.service.metadata.MetaDataParserFactory;
+
 /**
  * Locates services for objects that are not part of the Spring context.
  *
@@ -27,7 +31,6 @@ package net.sourceforge.subsonic.service;
 public class ServiceLocator {
 
     private static SettingsService settingsService;
-    private static VersionService versionService;
 
     private ServiceLocator() {
     }
@@ -38,14 +41,6 @@ public class ServiceLocator {
 
     public static void setSettingsService(SettingsService settingsService) {
         ServiceLocator.settingsService = settingsService;
-    }
-
-    public static VersionService getVersionService() {
-        return versionService;
-    }
-
-    public static void setVersionService(VersionService versionService) {
-        ServiceLocator.versionService = versionService;
     }
 }
 

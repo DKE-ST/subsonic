@@ -41,14 +41,12 @@ public class Album {
     private Date created;
     private Date lastScanned;
     private boolean present;
-    private Integer folderId;
 
     public Album() {
     }
 
     public Album(int id, String path, String name, String artist, int songCount, int durationSeconds, String coverArtPath,
-            Integer year, String genre, int playCount, Date lastPlayed, String comment, Date created, Date lastScanned,
-            boolean present, Integer folderId) {
+            Integer year, String genre, int playCount, Date lastPlayed, String comment, Date created, Date lastScanned, boolean present) {
         this.id = id;
         this.path = path;
         this.name = name;
@@ -63,7 +61,6 @@ public class Album {
         this.comment = comment;
         this.created = created;
         this.lastScanned = lastScanned;
-        this.folderId = folderId;
         this.present = present;
     }
 
@@ -185,13 +182,5 @@ public class Album {
 
     public void setPresent(boolean present) {
         this.present = present;
-    }
-
-    public void setFolderId(Integer folderId) {
-        this.folderId = folderId;
-    }
-
-    public Integer getFolderId() {
-        return folderId;
     }
 }

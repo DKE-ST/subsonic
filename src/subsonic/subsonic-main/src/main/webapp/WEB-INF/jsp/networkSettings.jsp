@@ -25,14 +25,7 @@
         }
 
         function enableUrlRedirectionFields() {
-            var urlRedirectionEnabled = $("#urlRedirectionEnabled").is(":checked");
-            var normal = $("#urlRedirectTypeNormal").is(":checked");
-            var custom = $("#urlRedirectTypeCustom").is(":checked");
-
-            $("#urlRedirectFrom").prop("disabled", !urlRedirectionEnabled || !normal);
-            $("#urlRedirectCustomUrl").prop("disabled", !urlRedirectionEnabled || !custom);
-            $("#urlRedirectTypeNormal").prop("disabled", !urlRedirectionEnabled);
-            $("#urlRedirectTypeCustom").prop("disabled", !urlRedirectionEnabled);
+            $("#urlRedirectFrom").prop("disabled", !$("#urlRedirectionEnabled").is(":checked"));
         }
 
     </script>
@@ -72,17 +65,8 @@
 
     <div style="padding-left:2em">
 
-        <p>
-            <form:radiobutton id="urlRedirectTypeNormal" path="urlRedirectType" value="NORMAL" onclick="enableUrlRedirectionFields()"/>
-            <label for="urlRedirectTypeNormal"><fmt:message key="networksettings.normalurl"/></label>
-            http://<form:input id="urlRedirectFrom" path="urlRedirectFrom" size="16" cssStyle="margin-left:0.25em"/>.subsonic.org
-        </p>
+        <p>http://<form:input id="urlRedirectFrom" path="urlRedirectFrom" size="16" cssStyle="margin-left:0.25em"/>.subsonic.org</p>
 
-        <p>
-            <form:radiobutton id="urlRedirectTypeCustom" path="urlRedirectType" value="CUSTOM" onclick="enableUrlRedirectionFields()"/>
-            <label for="urlRedirectTypeCustom"><fmt:message key="networksettings.customurl"/></label>
-            <form:input id="urlRedirectCustomUrl" path="urlRedirectCustomUrl" size="50" cssStyle="margin-left:0.5em"/>
-        </p>
         <p class="detail">
             <fmt:message key="networksettings.status"/>
             <span id="urlRedirectionStatus" style="margin-left:0.25em"></span>

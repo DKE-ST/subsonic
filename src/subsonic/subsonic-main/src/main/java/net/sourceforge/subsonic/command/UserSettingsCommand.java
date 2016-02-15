@@ -19,7 +19,6 @@
 package net.sourceforge.subsonic.command;
 
 import net.sourceforge.subsonic.controller.UserSettingsController;
-import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.TranscodeScheme;
 import net.sourceforge.subsonic.domain.User;
 
@@ -42,7 +41,6 @@ public class UserSettingsCommand {
     private boolean isJukeboxRole;
     private boolean isSettingsRole;
     private boolean isShareRole;
-    private boolean isVideoConversionRole;
 
     private List<User> users;
     private boolean isAdmin;
@@ -54,15 +52,12 @@ public class UserSettingsCommand {
     private String email;
     private boolean isLdapAuthenticated;
     private boolean isLdapEnabled;
-    private List<MusicFolder> allMusicFolders;
-    private int[] allowedMusicFolderIds;
 
     private String transcodeSchemeName;
     private EnumHolder[] transcodeSchemeHolders;
     private boolean transcodingSupported;
     private String transcodeDirectory;
     private boolean toast;
-    private boolean reload;
 
     public String getUsername() {
         return username;
@@ -152,14 +147,6 @@ public class UserSettingsCommand {
         isShareRole = shareRole;
     }
 
-    public boolean isVideoConversionRole() {
-        return isVideoConversionRole;
-    }
-
-    public void setVideoConversionRole(boolean videoConversionRole) {
-        isVideoConversionRole = videoConversionRole;
-    }
-
     public List<User> getUsers() {
         return users;
     }
@@ -240,22 +227,6 @@ public class UserSettingsCommand {
         isLdapEnabled = ldapEnabled;
     }
 
-    public List<MusicFolder> getAllMusicFolders() {
-        return allMusicFolders;
-    }
-
-    public void setAllMusicFolders(List<MusicFolder> allMusicFolders) {
-        this.allMusicFolders = allMusicFolders;
-    }
-
-    public int[] getAllowedMusicFolderIds() {
-        return allowedMusicFolderIds;
-    }
-
-    public void setAllowedMusicFolderIds(int[] allowedMusicFolderIds) {
-        this.allowedMusicFolderIds = allowedMusicFolderIds;
-    }
-
     public String getTranscodeSchemeName() {
         return transcodeSchemeName;
     }
@@ -304,7 +275,6 @@ public class UserSettingsCommand {
         isJukeboxRole = user != null && user.isJukeboxRole();
         isSettingsRole = user != null && user.isSettingsRole();
         isShareRole = user != null && user.isShareRole();
-        isVideoConversionRole = user != null && user.isVideoConversionRole();
         isLdapAuthenticated = user != null && user.isLdapAuthenticated();
     }
 
@@ -314,13 +284,5 @@ public class UserSettingsCommand {
 
     public boolean isToast() {
         return toast;
-    }
-
-    public boolean isReload() {
-        return reload;
-    }
-
-    public void setReload(boolean reload) {
-        this.reload = reload;
     }
 }

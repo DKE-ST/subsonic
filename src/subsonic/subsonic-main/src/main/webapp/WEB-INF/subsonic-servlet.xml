@@ -6,15 +6,10 @@
 
     <bean id="leftController" class="net.sourceforge.subsonic.controller.LeftController">
         <property name="viewName" value="left"/>
-        <property name="securityService" ref="securityService"/>
-        <property name="settingsService" ref="settingsService"/>
-    </bean>
-    <bean id="artistsController" class="net.sourceforge.subsonic.controller.ArtistsController">
-        <property name="viewName" value="artists"/>
-        <property name="mediaFileService" ref="mediaFileService"/>
         <property name="mediaScannerService" ref="mediaScannerService"/>
         <property name="securityService" ref="securityService"/>
         <property name="settingsService" ref="settingsService"/>
+        <property name="mediaFileService" ref="mediaFileService"/>
         <property name="musicIndexService" ref="musicIndexService"/>
         <property name="playerService" ref="playerService"/>
     </bean>
@@ -62,8 +57,6 @@
         <property name="viewName" value="help"/>
         <property name="versionService" ref="versionService"/>
         <property name="settingsService" ref="settingsService"/>
-        <property name="securityService" ref="securityService"/>
-        <property name="mediaScannerService" ref="mediaScannerService"/>
     </bean>
     <bean id="moreController" class="net.sourceforge.subsonic.controller.MoreController">
         <property name="viewName" value="more"/>
@@ -91,18 +84,14 @@
         <property name="settingsService" ref="settingsService"/>
         <property name="securityService" ref="securityService"/>
     </bean>
-    <bean id="podcastChannelsController" class="net.sourceforge.subsonic.controller.PodcastChannelsController">
-        <property name="viewName" value="podcastChannels"/>
+    <bean id="podcastReceiverController" class="net.sourceforge.subsonic.controller.PodcastReceiverController">
+        <property name="viewName" value="podcastReceiver"/>
         <property name="podcastService" ref="podcastService"/>
         <property name="securityService" ref="securityService"/>
         <property name="settingsService" ref="settingsService"/>
     </bean>
-    <bean id="podcastChannelController" class="net.sourceforge.subsonic.controller.PodcastChannelController">
-        <property name="viewName" value="podcastChannel"/>
-        <property name="podcastService" ref="podcastService"/>
-        <property name="securityService" ref="securityService"/>
-    </bean>
-    <bean id="podcastReceiverAdminController" class="net.sourceforge.subsonic.controller.PodcastReceiverAdminController">
+    <bean id="podcastReceiverAdminController"
+          class="net.sourceforge.subsonic.controller.PodcastReceiverAdminController">
         <property name="podcastService" ref="podcastService"/>
     </bean>
     <bean id="setMusicFileInfoController" class="net.sourceforge.subsonic.controller.SetMusicFileInfoController">
@@ -125,8 +114,6 @@
         <property name="viewName" value="reload"/>
         <property name="playerService" ref="playerService"/>
         <property name="searchService" ref="searchService"/>
-        <property name="securityService" ref="securityService"/>
-        <property name="settingsService" ref="settingsService"/>
         <property name="reloadFrames">
             <list>
                 <bean class="net.sourceforge.subsonic.controller.ReloadFrame">
@@ -182,11 +169,6 @@
         <property name="upnpService" ref="upnpService"/>
         <property name="settingsService" ref="settingsService"/>
     </bean>
-    <bean id="sonosSettingsController" class="net.sourceforge.subsonic.controller.SonosSettingsController">
-        <property name="viewName" value="sonosSettings"/>
-        <property name="sonosService" ref="sonosService"/>
-        <property name="settingsService" ref="settingsService"/>
-    </bean>
     <bean id="shareSettingsController" class="net.sourceforge.subsonic.controller.ShareSettingsController">
         <property name="viewName" value="shareSettings"/>
         <property name="shareService" ref="shareService"/>
@@ -202,7 +184,7 @@
         <property name="mediaScannerService" ref="mediaScannerService"/>
         <property name="artistDao" ref="artistDao"/>
         <property name="albumDao" ref="albumDao"/>
-        <property name="mediaFileDao" ref="mediaFileDao"/>
+        <property name="mediaFolderDao" ref="mediaFileDao"/>
     </bean>
     <bean id="networkSettingsController" class="net.sourceforge.subsonic.controller.NetworkSettingsController">
         <property name="commandClass" value="net.sourceforge.subsonic.command.NetworkSettingsCommand"/>
@@ -290,19 +272,13 @@
         <property name="securityService" ref="securityService"/>
         <property name="settingsService" ref="settingsService"/>
     </bean>
-    <bean id="coverArtController" class="net.sourceforge.subsonic.controller.CoverArtController" init-method="init">
+    <bean id="coverArtController" class="net.sourceforge.subsonic.controller.CoverArtController">
         <property name="mediaFileService" ref="mediaFileService"/>
         <property name="transcodingService" ref="transcodingService"/>
         <property name="settingsService" ref="settingsService"/>
         <property name="playlistService" ref="playlistService"/>
-        <property name="podcastService" ref="podcastService"/>
-        <property name="securityService" ref="securityService"/>
         <property name="artistDao" ref="artistDao"/>
         <property name="albumDao" ref="albumDao"/>
-    </bean>
-    <bean id="captionsController" class="net.sourceforge.subsonic.controller.CaptionsController">
-        <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="securityService" ref="securityService"/>
     </bean>
     <bean id="avatarController" class="net.sourceforge.subsonic.controller.AvatarController">
         <property name="settingsService" ref="settingsService"/>
@@ -333,7 +309,6 @@
     <bean id="hlsController" class="net.sourceforge.subsonic.controller.HLSController">
         <property name="playerService" ref="playerService"/>
         <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="securityService" ref="securityService"/>
     </bean>
     <bean id="videoPlayerController" class="net.sourceforge.subsonic.controller.VideoPlayerController">
         <property name="viewName" value="videoPlayer"/>
@@ -341,23 +316,13 @@
         <property name="settingsService" ref="settingsService"/>
         <property name="playerService" ref="playerService"/>
         <property name="securityService" ref="securityService"/>
-        <property name="videoConversionService" ref="videoConversionService"/>
-        <property name="captionsController" ref="captionsController"/>
-    </bean>
-    <bean id="videoConverterController" class="net.sourceforge.subsonic.controller.VideoConverterController">
-        <property name="viewName" value="videoConverter"/>
-        <property name="mediaFileService" ref="mediaFileService"/>
-        <property name="securityService" ref="securityService"/>
-        <property name="videoConversionService" ref="videoConversionService"/>
-        <property name="settingsService" ref="settingsService"/>
     </bean>
     <bean id="externalPlayerController" class="net.sourceforge.subsonic.controller.ExternalPlayerController">
         <property name="viewName" value="externalPlayer"/>
         <property name="mediaFileService" ref="mediaFileService"/>
         <property name="settingsService" ref="settingsService"/>
         <property name="playerService" ref="playerService"/>
-        <property name="shareService" ref="shareService"/>
-        <property name="transcodingService" ref="transcodingService"/>
+        <property name="shareDao" ref="shareDao"/>
     </bean>
     <bean id="downloadController" class="net.sourceforge.subsonic.controller.DownloadController">
         <property name="playerService" ref="playerService"/>
@@ -367,11 +332,11 @@
         <property name="settingsService" ref="settingsService"/>
         <property name="mediaFileService" ref="mediaFileService"/>
     </bean>
-    <bean id="premiumSettingsController" class="net.sourceforge.subsonic.controller.PremiumSettingsController">
-        <property name="commandClass" value="net.sourceforge.subsonic.command.PremiumSettingsCommand"/>
-        <property name="successView" value="premiumSettings"/>
-        <property name="formView" value="premiumSettings"/>
-        <property name="validator" ref="premiumSettingsValidator"/>
+    <bean id="premiumController" class="net.sourceforge.subsonic.controller.PremiumController">
+        <property name="commandClass" value="net.sourceforge.subsonic.command.PremiumCommand"/>
+        <property name="successView" value="premium"/>
+        <property name="formView" value="premium"/>
+        <property name="validator" ref="premiumValidator"/>
         <property name="settingsService" ref="settingsService"/>
         <property name="securityService" ref="securityService"/>
     </bean>
@@ -412,20 +377,19 @@
         <property name="artistDao" ref="artistDao"/>
         <property name="albumDao" ref="albumDao"/>
         <property name="bookmarkDao" ref="bookmarkDao"/>
-        <property name="playQueueDao" ref="playQueueDao"/>
         <property name="downloadController" ref="downloadController"/>
         <property name="streamController" ref="streamController"/>
         <property name="hlsController" ref="hlsController"/>
         <property name="coverArtController" ref="coverArtController"/>
         <property name="avatarController" ref="avatarController"/>
         <property name="userSettingsController" ref="userSettingsController"/>
-        <property name="artistsController" ref="artistsController"/>
+        <property name="leftController" ref="leftController"/>
     </bean>
     <bean id="dbController" class="net.sourceforge.subsonic.controller.DBController">
         <property name="viewName" value="db"/>
         <property name="daoHelper" ref="daoHelper"/>
     </bean>
-    <bean id="premiumSettingsValidator" class="net.sourceforge.subsonic.validator.PremiumSettingsValidator">
+    <bean id="premiumValidator" class="net.sourceforge.subsonic.validator.PremiumValidator">
         <property name="settingsService" ref="settingsService"/>
     </bean>
     <bean id="userSettingsValidator" class="net.sourceforge.subsonic.validator.UserSettingsValidator">
@@ -443,7 +407,6 @@
                 <prop key="/playlists.view">playlistsController</prop>
                 <prop key="/help.view">helpController</prop>
                 <prop key="/lyrics.view">lyricsController</prop>
-                <prop key="/artists.view">artistsController</prop>
                 <prop key="/left.view">leftController</prop>
                 <prop key="/right.view">rightController</prop>
                 <prop key="/status.view">statusController</prop>
@@ -464,14 +427,12 @@
                 <prop key="/gettingStarted.view">multiController</prop>
                 <prop key="/index.view">multiController</prop>
                 <prop key="/videoPlayer.view">videoPlayerController</prop>
-                <prop key="/videoConverter.view">videoConverterController</prop>
                 <prop key="/nowPlaying.view">nowPlayingController</prop>
                 <prop key="/starred.view">starredController</prop>
                 <prop key="/search.view">searchController</prop>
                 <prop key="/settings.view">settingsController</prop>
                 <prop key="/playerSettings.view">playerSettingsController</prop>
                 <prop key="/dlnaSettings.view">dlnaSettingsController</prop>
-                <prop key="/sonosSettings.view">sonosSettingsController</prop>
                 <prop key="/shareSettings.view">shareSettingsController</prop>
                 <prop key="/musicFolderSettings.view">musicFolderSettingsController</prop>
                 <prop key="/networkSettings.view">networkSettingsController</prop>
@@ -484,22 +445,20 @@
                 <prop key="/avatarUpload.view">avatarUploadController</prop>
                 <prop key="/userSettings.view">userSettingsController</prop>
                 <prop key="/passwordSettings.view">passwordSettingsController</prop>
-                <prop key="/premiumSettings.view">premiumSettingsController</prop>
                 <prop key="/allmusic.view">allmusicController</prop>
                 <prop key="/home.view">homeController</prop>
                 <prop key="/editTags.view">editTagsController</prop>
                 <prop key="/playQueue.view">playQueueController</prop>
                 <prop key="/coverArt.view">coverArtController</prop>
-                <prop key="/captions.view">captionsController</prop>
                 <prop key="/avatar.view">avatarController</prop>
                 <prop key="/proxy.view">proxyController</prop>
                 <prop key="/statusChart.view">statusChartController</prop>
                 <prop key="/userChart.view">userChartController</prop>
                 <prop key="/download.view">downloadController</prop>
+                <prop key="/premium.view">premiumController</prop>
                 <prop key="/db.view">dbController</prop>
                 <prop key="/test.view">multiController</prop>
-                <prop key="/podcastChannels.view">podcastChannelsController</prop>
-                <prop key="/podcastChannel.view">podcastChannelController</prop>
+                <prop key="/podcastReceiver.view">podcastReceiverController</prop>
                 <prop key="/podcastReceiverAdmin.view">podcastReceiverAdminController</prop>
                 <prop key="/podcast.view">podcastController</prop>
                 <prop key="/podcast/**">podcastController</prop>

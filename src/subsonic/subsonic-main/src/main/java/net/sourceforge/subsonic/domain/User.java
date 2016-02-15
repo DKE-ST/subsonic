@@ -26,7 +26,6 @@ package net.sourceforge.subsonic.domain;
 public class User {
 
     public static final String USERNAME_ADMIN = "admin";
-    public static final String USERNAME_GUEST = "guest";
 
     private final String username;
     private String password;
@@ -47,7 +46,6 @@ public class User {
     private boolean isStreamRole;
     private boolean isJukeboxRole;
     private boolean isShareRole;
-    private boolean isVideoConversionRole;
 
     public User(String username, String password, String email, boolean ldapAuthenticated,
                 long bytesStreamed, long bytesDownloaded, long bytesUploaded) {
@@ -204,17 +202,9 @@ public class User {
         isShareRole = shareRole;
     }
 
-    public void setVideoConversionRole(boolean videoConversionRole) {
-        isVideoConversionRole = videoConversionRole;
-    }
-
-    public boolean isVideoConversionRole() {
-        return isVideoConversionRole;
-    }
-
     @Override
     public String toString() {
-        StringBuilder result = new StringBuilder(username);
+        StringBuffer result = new StringBuffer(username);
 
         if (isAdminRole) {
             result.append(" [admin]");
@@ -248,9 +238,6 @@ public class User {
         }
         if (isShareRole) {
             result.append(" [share]");
-        }
-        if (isVideoConversionRole) {
-            result.append(" [video_conversion]");
         }
 
         return result.toString();

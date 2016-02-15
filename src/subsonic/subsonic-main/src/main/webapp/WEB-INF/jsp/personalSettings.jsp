@@ -23,8 +23,7 @@
     <c:param name="toast" value="${command.reloadNeeded}"/>
 </c:import>
 
-<fmt:message key="personalsettings.title" var="title"><fmt:param>${command.user.username}</fmt:param></fmt:message>
-<h2>${fn:escapeXml(title)}</h2>
+<h2><fmt:message key="personalsettings.title"><fmt:param>${command.user.username}</fmt:param></fmt:message></h2>
 
 <fmt:message key="common.default" var="defaultTitle"/>
 <form:form method="post" action="personalSettings.view" commandName="command">
@@ -54,20 +53,6 @@
                     </c:forEach>
                 </form:select>
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="theme"/></c:import>
-            </td>
-        </tr>
-
-        <tr>
-            <td><fmt:message key="personalsettings.albumlist"/></td>
-            <td>
-                <form:select path="albumListId" cssStyle="width:15em">
-                    <c:forEach items="${command.albumLists}" var="albumList" varStatus="loopStatus">
-                        <c:set var="label">
-                            <fmt:message key="home.${albumList.id}.title"/>
-                        </c:set>
-                        <form:option value="${albumList.id}" label="${label}"/>
-                    </c:forEach>
-                </form:select>
             </td>
         </tr>
     </table>
@@ -146,14 +131,6 @@
             <td><label for="partyModeEnabled"><fmt:message key="personalsettings.partymode"/></label>
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="partymode"/></c:import>
             </td>
-        </tr>
-        <tr>
-            <td><form:checkbox path="queueFollowingSongs" id="queueFollowingSongs" cssClass="checkbox"/></td>
-            <td><label for="queueFollowingSongs"><fmt:message key="personalsettings.queuefollowingsongs"/></label></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
         </tr>
     </table>
 

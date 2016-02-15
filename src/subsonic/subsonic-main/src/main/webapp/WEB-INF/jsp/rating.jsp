@@ -19,23 +19,22 @@ PARAMETERS
 
     <c:choose>
         <c:when test="${param.rating ge i * 10}">
-            <c:set var="icon" value="fa-star starred"/>
+            <spring:theme code="ratingOnImage" var="imageUrl"/>
         </c:when>
         <c:when test="${param.rating ge i*10 - 7 and param.rating le i*10 - 3}">
-            <c:set var="icon" value="fa-star-half-o starred"/>
+            <spring:theme code="ratingHalfImage" var="imageUrl"/>
         </c:when>
         <c:otherwise>
-            <c:set var="icon" value="fa-star-o"/>
+            <spring:theme code="ratingOffImage" var="imageUrl"/>
         </c:otherwise>
     </c:choose>
 
     <c:choose>
         <c:when test="${param.readonly}">
-            <i class="fa ${icon} clickable" title="<fmt:message key="rating.rating"/> ${param.rating/10}"></i>
+            <img src="${imageUrl}" style="margin-right:-3px" alt="" title="<fmt:message key="rating.rating"/> ${param.rating/10}">
         </c:when>
         <c:otherwise>
-            <i class="fa ${icon} clickable" title="<fmt:message key="rating.rating"/> ${param.rating/10}"
-               style="margin-right:-2px" onclick="location.href='${ratingUrl}'"></i>
+            <a href="${ratingUrl}"><img src="${imageUrl}" style="margin-right:-3px" alt="" title="<fmt:message key="rating.rating"/> ${i}"></a>
         </c:otherwise>
     </c:choose>
 
@@ -48,6 +47,5 @@ PARAMETERS
 </sub:url>
 
 <c:if test="${not param.readonly}">
-    &nbsp;| <i class="fa fa-remove clickable" title="<fmt:message key="rating.clearrating"/>" onclick="location.href='${clearRatingUrl}'"></i>
-
+    &nbsp;| <a href="${clearRatingUrl}"><img src="<spring:theme code="clearRatingImage"/>" alt="" title="<fmt:message key="rating.clearrating"/>" style="margin-right:5px"></a>
 </c:if>

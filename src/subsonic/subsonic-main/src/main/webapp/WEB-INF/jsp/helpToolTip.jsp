@@ -15,7 +15,4 @@ PARAMETERS
     <div style="font-weight:bold;"><fmt:message key="helppopup.${param.topic}.title"><fmt:param value="Subsonic"/></fmt:message></div>
     <div><fmt:message key="helppopup.${param.topic}.text"><fmt:param value="Subsonic"/></fmt:message></div>
 </div>
-
-<i class="fa fa-info-circle icon"
-   onmouseover="TagToTip('placeholder-${param.topic}', BALLOON, true, ABOVE, true, OFFSETX, -17, PADDING, 8, WIDTH, -240, CLICKSTICKY, true, CLICKCLOSE, true)"
-   onmouseout="UnTip()"></i>
+<img src="${imageUrl}" alt="${help}" title="${help}" onmouseover="TagToTip('placeholder-${param.topic}', BALLOON, true, ABOVE, true, OFFSETX, -17, PADDING, 8, WIDTH, -240, CLICKSTICKY, true, CLICKCLOSE, true)" onmouseout="UnTip()"/>

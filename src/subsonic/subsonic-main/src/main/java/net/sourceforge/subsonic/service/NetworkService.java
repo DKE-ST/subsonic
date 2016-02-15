@@ -27,7 +27,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
@@ -43,7 +42,6 @@ import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.util.EntityUtils;
 
 import net.sourceforge.subsonic.Logger;
-import net.sourceforge.subsonic.domain.UrlRedirectType;
 import net.sourceforge.subsonic.service.upnp.ClingRouter;
 import net.sourceforge.subsonic.service.upnp.NATPMPRouter;
 import net.sourceforge.subsonic.service.upnp.Router;
@@ -116,7 +114,7 @@ public class NetworkService {
     }
 
     public static String getBackendUrl() {
-        return "true".equals(System.getProperty("subsonic.test")) ? "http://localhost:8080" : "http://subsonic.org";
+        return "true".equals(System.getProperty("subsonic.test")) ? "http://localhost:8181" : "http://subsonic.org";
     }
 
     public void setSettingsService(SettingsService settingsService) {
@@ -217,7 +215,7 @@ public class NetworkService {
         @Override
         protected void execute() {
 
-            boolean enable = settingsService.isUrlRedirectionEnabled() && settingsService.getUrlRedirectType() == UrlRedirectType.NORMAL;
+            boolean enable = settingsService.isUrlRedirectionEnabled();
             HttpPost request = new HttpPost(enable ? URL_REDIRECTION_REGISTER_URL : URL_REDIRECTION_UNREGISTER_URL);
 
             int port = settingsService.getPort();
@@ -282,23 +280,13 @@ public class NetworkService {
 
         private void testUrlRedirection() {
 
-            String urlToTest;
-            String url = URL_REDIRECTION_TEST_URL;
-            if (settingsService.getUrlRedirectType() == UrlRedirectType.NORMAL) {
-                url += "?redirectFrom=" + settingsService.getUrlRedirectFrom();
-                urlToTest = settingsService.getUrlRedirectFrom() + ".subsonic.org";
-            } else {
-                url += "?customUrl=" + settingsService.getUrlRedirectCustomUrl();
-                urlToTest = settingsService.getUrlRedirectCustomUrl();
-            }
-
-            HttpGet request = new HttpGet(url);
+            HttpGet request = new HttpGet(URL_REDIRECTION_TEST_URL + "?redirectFrom=" + settingsService.getUrlRedirectFrom());
             HttpClient client = new DefaultHttpClient();
             HttpConnectionParams.setConnectionTimeout(client.getParams(), 10000);
             HttpConnectionParams.setSoTimeout(client.getParams(), 30000);
 
             try {
-                urlRedirectionStatus.setText("Testing web address " + urlToTest + ". Please wait...");
+                urlRedirectionStatus.setText("Testing web address " + settingsService.getUrlRedirectFrom() + ".subsonic.org. Please wait...");
                 String response = client.execute(request, new BasicResponseHandler());
                 urlRedirectionStatus.setText(response);
 

@@ -39,34 +39,15 @@ public class RatingService {
     private MediaFileService mediaFileService;
 
     /**
-     * Returns the highest rated albums for a given user.
-     *
-     * @param offset       Number of albums to skip.
-     * @param count        Maximum number of albums to return.
-     * @param username     The user name.
-     * @param musicFolders Only return albums in these folders.  @return The highest rated albums.
-     */
-    public List<MediaFile> getHighestRatedAlbumsForUser(int offset, int count, String username, List<MusicFolder> musicFolders) {
-        List<String> highestRated = ratingDao.getHighestRatedAlbumsForUser(offset, count, username, musicFolders);
-        List<MediaFile> result = new ArrayList<MediaFile>();
-        for (String path : highestRated) {
-            File file = new File(path);
-            if (FileUtil.exists(file) && securityService.isReadAllowed(file)) {
-                result.add(mediaFileService.getMediaFile(path));
-            }
-        }
-        return result;
-    }
-
-    /**
      * Returns the highest rated albums.
      *
-     * @param offset       Number of albums to skip.
-     * @param count        Maximum number of albums to return.
-     * @param musicFolders Only return albums in these folders.  @return The highest rated albums.
+     * @param offset      Number of albums to skip.
+     * @param count       Maximum number of albums to return.
+     * @param mediaFolder Only return albums in this media folder.
+     * @return The highest rated albums.
      */
-    public List<MediaFile> getHighestRatedAlbums(int offset, int count, List<MusicFolder> musicFolders) {
-        List<String> highestRated = ratingDao.getHighestRatedAlbums(offset, count, musicFolders);
+    public List<MediaFile> getHighestRatedAlbums(int offset, int count, MusicFolder mediaFolder) {
+        List<String> highestRated = ratingDao.getHighestRatedAlbums(offset, count, mediaFolder);
         List<MediaFile> result = new ArrayList<MediaFile>();
         for (String path : highestRated) {
             File file = new File(path);
@@ -107,10 +88,6 @@ public class RatingService {
      */
     public Integer getRatingForUser(String username, MediaFile mediaFile) {
         return ratingDao.getRatingForUser(username, mediaFile);
-    }
-
-    public int getRatedAlbumCount(String username, List<MusicFolder> musicFolders) {
-        return ratingDao.getRatedAlbumCount(username, musicFolders);
     }
 
     public void setRatingDao(RatingDao ratingDao) {

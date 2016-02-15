@@ -4,7 +4,7 @@
  * Author: Jeebs (Fisher Evans)
  */
 
-@import "base.css";
+@import "default.css";
 
 table {
 	color: #0e0e0e;
@@ -18,6 +18,10 @@ table {
 /* The secondary background color. */
 .bgcolor2, .ruleTableHeader, .log, table.music tr:nth-of-type(odd) {
     background-color: #0e0e0e;
+}
+
+body.bgcolor2 {
+    border-bottom: 1px solid #67778c;
 }
 
 .bgcolor2 {
@@ -36,13 +40,24 @@ body {
 }
 
 /* The secondary foreground color used for h1, details etc. */
-h1, .detail, .albumComment, .icon {
+h1, .detail, .albumComment {
     color: #ccd5dc;
 }
 
 /* Foreground color used for h2, bold and tr. */
 h2, b, tr {
     color: #ccd5dc;
+}
+
+/* Link color */
+a:link, a:active, a:visited, a:link *, a:active *, a:visited * {
+    color: #8a9aa7
+}
+
+/* Link hover color */
+a:hover, a:hover * {
+    text-decoration: underline;
+    color: #d2d9df;
 }
 
 /* Color for warning messages. */

@@ -19,22 +19,20 @@
 
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
-<c:url value="main.view" var="changeViewUrl">
-    <c:param name="id" value="${model.dir.id}"/>
-    <c:param name="viewAsList" value="${not model.viewAsList}"/>
-</c:url>
-
-
-<h1 style="padding-right:1em">
+<div style="float:right;padding-right:1em">
+    <c:url value="main.view" var="changeViewUrl">
+        <c:param name="id" value="${model.dir.id}"/>
+        <c:param name="viewAsList" value="${not model.viewAsList}"/>
+    </c:url>
     <c:choose>
         <c:when test="${model.viewAsList}">
-            <i class="fa fa-bars fa-fw headerSelected clickable"></i>
-            <i class="fa fa-th-large fa-fw clickable" onclick="location.href='${changeViewUrl}'"></i>
+            <img src="<spring:theme code="viewAsListImage"/>" alt="" class="headerSelected" style="margin-right:8px"/>
+            <a href="${changeViewUrl}"><img src="<spring:theme code="viewAsGridImage"/>" alt=""/></a>
         </c:when>
         <c:otherwise>
-            <i class="fa fa-bars fa-fw clickable" onclick="location.href='${changeViewUrl}'"></i>
-            <i class="fa fa-th-large fa-fw headerSelected clickable"></i>
+            <a href="${changeViewUrl}"><img src="<spring:theme code="viewAsListImage"/>" alt="" style="margin-right:8px"/></a>
+            <img src="<spring:theme code="viewAsGridImage"/>" alt="" class="headerSelected"/>
         </c:otherwise>
     </c:choose>
-</h1>
+</div>
 

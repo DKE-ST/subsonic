@@ -5,37 +5,9 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
     <script type="text/javascript" src="<c:url value="/script/scripts-2.0.js"/>"></script>
-    <script type="text/javascript">
-        function init() {
-            enablePasswordChangeFields();
-            <c:if test="${command.reload}">
-            parent.frames.left.location.href="left.view?";
-            </c:if>
-        }
-        function enablePasswordChangeFields() {
-            var changePasswordCheckbox = $("#passwordChange");
-            var ldapCheckbox = $("#ldapAuthenticated");
-            var passwordChangeTable = $("#passwordChangeTable");
-            var passwordChangeCheckboxTable = $("#passwordChangeCheckboxTable");
-
-            if (changePasswordCheckbox && changePasswordCheckbox.is(":checked") && (ldapCheckbox == null || !ldapCheckbox.is(":checked"))) {
-                passwordChangeTable.show();
-            } else {
-                passwordChangeTable.hide();
-            }
-
-            if (changePasswordCheckbox) {
-                if (ldapCheckbox && ldapCheckbox.is(":checked")) {
-                    passwordChangeCheckboxTable.hide();
-                } else {
-                    passwordChangeCheckboxTable.show();
-                }
-            }
-        }
-    </script>
 </head>
 
-<body class="mainframe bgcolor1" onload="init()">
+<body class="mainframe bgcolor1" onload="enablePasswordChangeFields();">
 <script type="text/javascript" src="<c:url value="/script/wz_tooltip.js"/>"></script>
 <script type="text/javascript" src="<c:url value="/script/tip_balloon.js"/>"></script>
 
@@ -43,6 +15,29 @@
     <c:param name="cat" value="user"/>
     <c:param name="toast" value="${command.toast}"/>
 </c:import>
+
+<script type="text/javascript" language="javascript">
+    function enablePasswordChangeFields() {
+        var changePasswordCheckbox = $("#passwordChange");
+        var ldapCheckbox = $("#ldapAuthenticated");
+        var passwordChangeTable = $("#passwordChangeTable");
+        var passwordChangeCheckboxTable = $("#passwordChangeCheckboxTable");
+
+        if (changePasswordCheckbox && changePasswordCheckbox.is(":checked") && (ldapCheckbox == null || !ldapCheckbox.is(":checked"))) {
+            passwordChangeTable.show();
+        } else {
+            passwordChangeTable.hide();
+        }
+
+        if (changePasswordCheckbox) {
+            if (ldapCheckbox && ldapCheckbox.is(":checked")) {
+                passwordChangeCheckboxTable.hide();
+            } else {
+                passwordChangeCheckboxTable.show();
+            }
+        }
+    }
+</script>
 
 <table class="indent">
     <tr>
@@ -52,7 +47,7 @@
                 <option value="">-- <fmt:message key="usersettings.newuser"/> --</option>
                 <c:forEach items="${command.users}" var="user">
                     <option ${user.username eq command.username ? "selected" : ""}
-                            value="${fn:escapeXml(user.username)}">${fn:escapeXml(user.username)}</option>
+                            value="${user.username}">${user.username}</option>
                 </c:forEach>
             </select>
         </td>
@@ -104,24 +99,7 @@
                 <td><form:checkbox path="podcastRole" id="podcast" cssClass="checkbox"/></td>
                 <td><label for="podcast"><fmt:message key="usersettings.podcast"/></label></td>
             </tr>
-            <tr>
-                <td><form:checkbox path="videoConversionRole" id="videoConversion" cssClass="checkbox"/></td>
-                <td><label for="videoConversion"><fmt:message key="usersettings.videoconversion"/></label></td>
-            </tr>
         </table>
-    </c:if>
-
-    <c:if test="${not empty command.allMusicFolders}">
-        <h2><fmt:message key="usersettings.folderaccess"/></h2>
-
-        <div style="width:75%">
-            <c:forEach items="${command.allMusicFolders}" var="musicFolder">
-                <span style="white-space:nowrap">
-                    <form:checkbox path="allowedMusicFolderIds" id="musicFolder${musicFolder.id}" value="${musicFolder.id}" cssClass="checkbox"/>
-                    <label for="musicFolder${musicFolder.id}" style="padding-right:1.5em">${musicFolder.name}</label>
-                </span>
-            </c:forEach>
-        </div>
     </c:if>
 
     <table class="indent">

@@ -6,7 +6,10 @@
 </head>
 <body class="mainframe bgcolor1">
 
-<h1><i class="fa fa-cog fa-lg icon"></i>&nbsp;&nbsp;<fmt:message key="avataruploadresult.title"/></h1>
+<h1>
+    <img src="<spring:theme code="settingsImage"/>" alt=""/>
+    <span style="vertical-align: middle"><fmt:message key="avataruploadresult.title"/></span>
+</h1>
 
 <c:choose>
     <c:when test="${empty model.error}">
@@ -27,7 +30,7 @@
     </c:otherwise>
 </c:choose>
 
-<i class="fa fa-chevron-left icon"></i>&nbsp;<a href="personalSettings.view?"><fmt:message key="common.back"/></a>
+<div class="back"><a href="personalSettings.view?"><fmt:message key="common.back"/></a></div>
 
 </body>
 </html>

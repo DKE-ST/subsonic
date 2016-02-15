@@ -18,19 +18,17 @@
  */
 package net.sourceforge.subsonic.service.jukebox;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicReference;
+import net.sourceforge.subsonic.Logger;
+import net.sourceforge.subsonic.service.JukeboxService;
+import org.apache.commons.io.IOUtils;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.SourceDataLine;
-
-import org.apache.commons.io.IOUtils;
-
-import net.sourceforge.subsonic.Logger;
-import net.sourceforge.subsonic.service.JukeboxService;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static net.sourceforge.subsonic.service.jukebox.AudioPlayer.State.*;
 
@@ -40,7 +38,7 @@ import static net.sourceforge.subsonic.service.jukebox.AudioPlayer.State.*;
  * Supports pause and resume, but not restarting.
  *
  * @author Sindre Mehus
- * @version $Id: AudioPlayer.java 4436 2015-03-15 09:28:07Z sindre_mehus $
+ * @version $Id: AudioPlayer.java 3701 2013-11-27 11:15:27Z sindre_mehus $
  */
 public class AudioPlayer {
 
@@ -54,10 +52,10 @@ public class AudioPlayer {
     private FloatControl gainControl;
 
     public AudioPlayer(InputStream in, Listener listener) throws Exception {
-        this.in = in;
+        this.in = new BufferedInputStream(in);
         this.listener = listener;
 
-        AudioFormat format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 44100.0F, 16, 2, 4, 44100.0F, true);
+        AudioFormat format = AudioSystem.getAudioFileFormat(this.in).getFormat();
         line = AudioSystem.getSourceDataLine(format);
         line.open(format);
         LOG.debug("Opened line " + line);
@@ -166,7 +164,7 @@ public class AudioPlayer {
 
         public void run() {
             try {
-                byte[] buffer = new byte[line.getBufferSize()];
+                byte[] buffer = new byte[8192];
 
                 while (true) {
 
@@ -178,8 +176,7 @@ public class AudioPlayer {
                             Thread.sleep(250);
                             break;
                         case PLAYING:
-                            // Fill buffer in order to ensure that write() receives an integral number of frames.
-                            int n = fill(buffer);
+                            int n = in.read(buffer);
                             if (n == -1) {
                                 setState(EOM);
                                 return;
@@ -193,18 +190,6 @@ public class AudioPlayer {
             } finally {
                 close();
             }
-        }
-
-        private int fill(byte[] buffer) throws IOException {
-            int bytesRead = 0;
-            while (bytesRead < buffer.length) {
-                int n = in.read(buffer, bytesRead, buffer.length - bytesRead);
-                if (n == -1) {
-                    return bytesRead == 0 ? -1 : bytesRead;
-                }
-                bytesRead += n;
-            }
-            return bytesRead;
         }
     }
 

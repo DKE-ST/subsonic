@@ -18,8 +18,6 @@
  */
 package net.sourceforge.subsonic.controller;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,19 +26,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
-import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.ParameterizableViewController;
 
-import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.PlayQueue;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.domain.RandomSearchCriteria;
 import net.sourceforge.subsonic.service.PlayerService;
 import net.sourceforge.subsonic.service.SearchService;
-import net.sourceforge.subsonic.service.SecurityService;
-import net.sourceforge.subsonic.service.SettingsService;
 
 /**
  * Controller for the creating a random play queue.
@@ -52,8 +46,6 @@ public class RandomPlayQueueController extends ParameterizableViewController {
     private PlayerService playerService;
     private List<ReloadFrame> reloadFrames;
     private SearchService searchService;
-    private SecurityService securityService;
-    private SettingsService settingsService;
 
     protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws Exception {
 
@@ -73,11 +65,15 @@ public class RandomPlayQueueController extends ParameterizableViewController {
             toYear = Integer.parseInt(tmp[1]);
         }
 
-        List<MusicFolder> musicFolders = getMusicFolders(request);
+        Integer musicFolderId = ServletRequestUtils.getRequiredIntParameter(request, "musicFolderId");
+        if (musicFolderId == -1) {
+            musicFolderId = null;
+        }
+
         Player player = playerService.getPlayer(request, response);
         PlayQueue playQueue = player.getPlayQueue();
 
-        RandomSearchCriteria criteria = new RandomSearchCriteria(size, genre, fromYear, toYear, musicFolders);
+        RandomSearchCriteria criteria = new RandomSearchCriteria(size, genre, fromYear, toYear, musicFolderId);
         playQueue.addFiles(false, searchService.getRandomSongs(criteria));
 
         if (request.getParameter("autoRandom") != null) {
@@ -92,15 +88,6 @@ public class RandomPlayQueueController extends ParameterizableViewController {
         return result;
     }
 
-    private List<MusicFolder> getMusicFolders(HttpServletRequest request) throws ServletRequestBindingException {
-        String username = securityService.getCurrentUsername(request);
-        Integer selectedMusicFolderId = ServletRequestUtils.getRequiredIntParameter(request, "musicFolderId");
-        if (selectedMusicFolderId == -1) {
-            selectedMusicFolderId = null;
-        }
-        return settingsService.getMusicFoldersForUser(username, selectedMusicFolderId);
-    }
-
     public void setPlayerService(PlayerService playerService) {
         this.playerService = playerService;
     }
@@ -111,13 +98,5 @@ public class RandomPlayQueueController extends ParameterizableViewController {
 
     public void setSearchService(SearchService searchService) {
         this.searchService = searchService;
-    }
-
-    public void setSecurityService(SecurityService securityService) {
-        this.securityService = securityService;
-    }
-
-    public void setSettingsService(SettingsService settingsService) {
-        this.settingsService = settingsService;
     }
 }

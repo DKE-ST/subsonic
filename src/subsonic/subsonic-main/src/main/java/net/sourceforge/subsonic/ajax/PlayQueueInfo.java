@@ -30,22 +30,20 @@ import net.sourceforge.subsonic.util.StringUtil;
 public class PlayQueueInfo {
 
     private final List<Entry> entries;
+    private final int index;
     private final boolean stopEnabled;
     private final boolean repeatEnabled;
     private final boolean sendM3U;
-    private final float jukeboxGain;
-    private final boolean jukeboxMute;
+    private final float gain;
     private int startPlayerAt = -1;
-    private long startPlayerAtPosition; // millis
 
-    public PlayQueueInfo(List<Entry> entries, boolean stopEnabled, boolean repeatEnabled, boolean sendM3U,
-                         float jukeboxGain, boolean jukeboxMute) {
+    public PlayQueueInfo(List<Entry> entries, int index, boolean stopEnabled, boolean repeatEnabled, boolean sendM3U, float gain) {
         this.entries = entries;
+        this.index = index;
         this.stopEnabled = stopEnabled;
         this.repeatEnabled = repeatEnabled;
         this.sendM3U = sendM3U;
-        this.jukeboxGain = jukeboxGain;
-        this.jukeboxMute = jukeboxMute;
+        this.gain = gain;
     }
 
     public List<Entry> getEntries() {
@@ -62,6 +60,10 @@ public class PlayQueueInfo {
         return StringUtil.formatDuration(durationSeconds);
     }
 
+    public int getIndex() {
+        return index;
+    }
+
     public boolean isStopEnabled() {
         return stopEnabled;
     }
@@ -74,12 +76,8 @@ public class PlayQueueInfo {
         return repeatEnabled;
     }
 
-    public float getJukeboxGain() {
-        return jukeboxGain;
-    }
-
-    public boolean isJukeboxMute() {
-        return jukeboxMute;
+    public float getGain() {
+        return gain;
     }
 
     public int getStartPlayerAt() {
@@ -91,18 +89,8 @@ public class PlayQueueInfo {
         return this;
     }
 
-    public long getStartPlayerAtPosition() {
-        return startPlayerAtPosition;
-    }
-
-    public PlayQueueInfo setStartPlayerAtPosition(long startPlayerAtPosition) {
-        this.startPlayerAtPosition = startPlayerAtPosition;
-        return this;
-    }
-
     public static class Entry {
         private final int id;
-        private final String hash;
         private final Integer trackNumber;
         private final String title;
         private final String artist;
@@ -122,11 +110,10 @@ public class PlayQueueInfo {
         private final String coverArtUrl;
         private final String remoteCoverArtUrl;
 
-        public Entry(int id, String hash, Integer trackNumber, String title, String artist, String album, String genre, Integer year,
+        public Entry(int id, Integer trackNumber, String title, String artist, String album, String genre, Integer year,
                 String bitRate, Integer duration, String durationAsString, String format, String contentType, String fileSize,
                 boolean starred, String albumUrl, String streamUrl, String remoteStreamUrl, String coverArtUrl, String remoteCoverArtUrl) {
             this.id = id;
-            this.hash = hash;
             this.trackNumber = trackNumber;
             this.title = title;
             this.artist = artist;
@@ -149,10 +136,6 @@ public class PlayQueueInfo {
 
         public int getId() {
             return id;
-        }
-
-        public String getHash() {
-            return hash;
         }
 
         public Integer getTrackNumber() {

@@ -12,7 +12,11 @@
 </head>
 <body class="mainframe bgcolor1">
 
-<h1 style="padding-bottom:0.5em"><i class="fa fa-home fa-lg icon"></i>&nbsp;&nbsp;<fmt:message key="gettingStarted.title"/></h1>
+<h1 style="padding-bottom:0.5em">
+    <img src="<spring:theme code="homeImage"/>" alt="">
+    <fmt:message key="gettingStarted.title"/>
+</h1>
+
 <fmt:message key="gettingStarted.text"/>
 
 <c:if test="${model.runningAsRoot}">
@@ -44,6 +48,6 @@
 
 </table>
 
-<i class="fa fa-chevron-right icon"></i>&nbsp;<a href="javascript:hideGettingStarted()"><fmt:message key="gettingStarted.hide"/></a>
+<div class="forward"><a href="javascript:hideGettingStarted()"><fmt:message key="gettingStarted.hide"/></a></div>
 
 </body></html>

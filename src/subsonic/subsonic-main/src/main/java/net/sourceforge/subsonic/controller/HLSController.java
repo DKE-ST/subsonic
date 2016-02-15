@@ -37,7 +37,6 @@ import net.sourceforge.subsonic.domain.MediaFile;
 import net.sourceforge.subsonic.domain.Player;
 import net.sourceforge.subsonic.service.MediaFileService;
 import net.sourceforge.subsonic.service.PlayerService;
-import net.sourceforge.subsonic.service.SecurityService;
 import net.sourceforge.subsonic.util.Pair;
 import net.sourceforge.subsonic.util.StringUtil;
 
@@ -48,44 +47,29 @@ import net.sourceforge.subsonic.util.StringUtil;
  */
 public class HLSController implements Controller {
 
-    private static final int SEGMENT_DURATION = 40;
+    private static final int SEGMENT_DURATION = 10;
     private static final Pattern BITRATE_PATTERN = Pattern.compile("(\\d+)(@(\\d+)x(\\d+))?");
 
     private PlayerService playerService;
     private MediaFileService mediaFileService;
-    private SecurityService securityService;
 
     public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        return handleRequest(request, response, true);
-    }
 
-    public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response, boolean authenticate) throws Exception {
-
-        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.addHeader("Access-Control-Allow-Origin", "*");
 
         int id = ServletRequestUtils.getIntParameter(request, "id");
         MediaFile mediaFile = mediaFileService.getMediaFile(id);
-        Player player = playerService.getPlayer(request, response);
-        String username = player.getUsername();
-
         if (mediaFile == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Media file not found: " + id);
             return null;
         }
-
-        if (authenticate && !securityService.isAuthenticated(mediaFile, request) ||
-            username != null && !securityService.isFolderAccessAllowed(mediaFile, username)) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN,
-                               "Access to file " + mediaFile.getId() + " is forbidden for user " + username);
-            return null;
-        }
-
         Integer duration = mediaFile.getDurationSeconds();
         if (duration == null || duration == 0) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unknown duration for media file: " + id);
             return null;
         }
 
+        Player player = playerService.getPlayer(request, response);
         response.setContentType("application/vnd.apple.mpegurl");
         response.setCharacterEncoding(StringUtil.ENCODING_UTF8);
         List<Pair<Integer, Dimension>> bitRates = parseBitRates(request);
@@ -93,7 +77,7 @@ public class HLSController implements Controller {
         if (bitRates.size() > 1) {
             generateVariantPlaylist(request, id, player, bitRates, writer);
         } else {
-            generateNormalPlaylist(request, mediaFile, player, bitRates.size() == 1 ? bitRates.get(0) : null, duration, writer);
+            generateNormalPlaylist(request, id, player, bitRates.size() == 1 ? bitRates.get(0) : null, duration, writer);
         }
 
         return null;
@@ -148,7 +132,7 @@ public class HLSController implements Controller {
 //        writer.println("#EXT-X-ENDLIST");
     }
 
-    private void generateNormalPlaylist(HttpServletRequest request, MediaFile file, Player player, Pair<Integer, Dimension> bitRate, int totalDuration, PrintWriter writer) {
+    private void generateNormalPlaylist(HttpServletRequest request, int id, Player player, Pair<Integer, Dimension> bitRate, int totalDuration, PrintWriter writer) {
         writer.println("#EXTM3U");
         writer.println("#EXT-X-VERSION:1");
         writer.println("#EXT-X-TARGETDURATION:" + SEGMENT_DURATION);
@@ -156,23 +140,22 @@ public class HLSController implements Controller {
         for (int i = 0; i < totalDuration / SEGMENT_DURATION; i++) {
             int offset = i * SEGMENT_DURATION;
             writer.println("#EXTINF:" + SEGMENT_DURATION + ",");
-            writer.println(createStreamUrl(request, player, file, offset, SEGMENT_DURATION, bitRate));
+            writer.println(createStreamUrl(request, player, id, offset, SEGMENT_DURATION, bitRate));
         }
 
         int remainder = totalDuration % SEGMENT_DURATION;
         if (remainder > 0) {
             writer.println("#EXTINF:" + remainder + ",");
             int offset = totalDuration - remainder;
-            writer.println(createStreamUrl(request, player, file, offset, remainder, bitRate));
+            writer.println(createStreamUrl(request, player, id, offset, remainder, bitRate));
         }
         writer.println("#EXT-X-ENDLIST");
     }
 
-    private String createStreamUrl(HttpServletRequest request, Player player, MediaFile file, int offset, int duration, Pair<Integer, Dimension> bitRate) {
+    private String createStreamUrl(HttpServletRequest request, Player player, int id, int offset, int duration, Pair<Integer, Dimension> bitRate) {
         StringBuilder builder = new StringBuilder();
-        builder.append(getContextPath(request)).append("stream/stream.ts?id=").append(file.getId()).append("&auth=")
-               .append(file.getHash()).append("&hls=true&timeOffset=").append(offset)
-               .append("&player=").append(player.getId()).append("&duration=").append(duration);
+        builder.append(getContextPath(request)).append("stream/stream.ts?id=").append(id).append("&hls=true&timeOffset=").append(offset)
+                .append("&player=").append(player.getId()).append("&duration=").append(duration);
         if (bitRate != null) {
             builder.append("&maxBitRate=").append(bitRate.getFirst());
             Dimension dimension = bitRate.getSecond();
@@ -199,9 +182,5 @@ public class HLSController implements Controller {
 
     public void setPlayerService(PlayerService playerService) {
         this.playerService = playerService;
-    }
-
-    public void setSecurityService(SecurityService securityService) {
-        this.securityService = securityService;
     }
 }

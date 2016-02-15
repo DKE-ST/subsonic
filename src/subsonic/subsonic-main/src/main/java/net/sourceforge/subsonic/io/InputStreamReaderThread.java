@@ -50,7 +50,7 @@ public class InputStreamReaderThread extends Thread {
             reader = new BufferedReader(new InputStreamReader(input));
             for (String line = reader.readLine(); line != null; line = reader.readLine()) {
                 if (log) {
-                    LOG.info('(' + name + ") " + line);
+                    LOG.debug('(' + name + ") " + line);
                 }
             }
         } catch (IOException x) {

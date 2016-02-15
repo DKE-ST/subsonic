@@ -18,23 +18,22 @@
  */
 package net.sourceforge.subsonic.controller;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.Controller;
-
+import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.domain.MediaFile;
-import net.sourceforge.subsonic.domain.PlayQueue;
 import net.sourceforge.subsonic.domain.Player;
+import net.sourceforge.subsonic.domain.PlayQueue;
 import net.sourceforge.subsonic.service.PlayerService;
 import net.sourceforge.subsonic.service.SettingsService;
 import net.sourceforge.subsonic.service.TranscodingService;
 import net.sourceforge.subsonic.util.StringUtil;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.Controller;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
 
 /**
  * Controller which produces the M3U playlist.
@@ -46,6 +45,8 @@ public class M3UController implements Controller {
     private PlayerService playerService;
     private SettingsService settingsService;
     private TranscodingService transcodingService;
+
+    private static final Logger LOG = Logger.getLogger(M3UController.class);
 
     public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
         response.setContentType("audio/x-mpegurl");
@@ -62,7 +63,12 @@ public class M3UController implements Controller {
             url = StringUtil.rewriteUrl(url, referer);
         }
 
-        url = settingsService.rewriteRemoteUrl(url);
+        // Change protocol and port, if specified. (To make it work with players that don't support SSL.)
+        int streamPort = settingsService.getStreamPort();
+        if (streamPort != 0) {
+            url = StringUtil.toHttpUrl(url, streamPort);
+            LOG.info("Using non-SSL port " + streamPort + " in m3u playlist.");
+        }
 
         if (player.isExternalWithPlaylist()) {
             createClientSidePlaylist(response.getWriter(), player, url);
@@ -84,7 +90,7 @@ public class M3UController implements Controller {
                 duration = -1;
             }
             out.println("#EXTINF:" + duration + "," + mediaFile.getArtist() + " - " + mediaFile.getTitle());
-            out.println(url + "player=" + player.getId() + "&id=" + mediaFile.getId() + "&suffix=." + transcodingService.getSuffix(player, mediaFile, null));
+            out.println(url + "player=" + player.getId() + "&id=" +mediaFile.getId() + "&suffix=." + transcodingService.getSuffix(player, mediaFile, null));
         }
     }
 

@@ -10,85 +10,41 @@
     <script type="text/javascript" src="<c:url value="/dwr/interface/playlistService.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/engine.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/dwr/util.js"/>"></script>
-    <script type="text/javascript" src="<c:url value="/script/jwplayer-7.2.4/jwplayer.js"/>"></script>
-    <script type="text/javascript">jwplayer.key="fnCY1zPzsH/DE/Uo+pvsBes6gTdfOCcLCCnD6g==";</script>
+    <script type="text/javascript" src="<c:url value="/script/jwplayer-5.10.min.js"/>"></script>
     <script type="text/javascript" src="<c:url value="/script/cast_sender-v1.js"/>"></script>
     <%@ include file="playQueueCast.jsp" %>
     <link type="text/css" rel="stylesheet" href="<c:url value="/script/webfx/luna.css"/>">
-    <link type="text/css" rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-
     <style type="text/css">
         .ui-slider .ui-slider-handle {
-            width: 12px; height: 12px; cursor: pointer;
-            background: #E65100;
-            display:none;
-            border:none;
+            width: 11px;
+            height: 11px;
+            cursor: pointer;
+        }
+        .ui-slider a {
+            outline:none;
         }
         .ui-slider {
             cursor: pointer;
-            border:none;
-        }
-        .ui-slider-range-min {
-            background: #E65100;
-        }
-        .ui-slider-handle:focus {
-            outline:none;
-        }
-        #startButton, #stopButton {
-            cursor:pointer; font-size:30px; color:#E65100
-        }
-        #bufferButton {
-            font-size:30px; color:#E65100
-        }
-        #previousButton, #nextButton {
-            cursor:pointer; font-size:18px; padding:10px; margin-left:10px; margin-right:10px
-        }
-        #muteOn, #muteOff {
-            cursor:pointer; font-size:20px; padding:8px
-        }
-        #castOn, #castOff {
-            margin-left:15px; cursor:pointer;display:none;
-        }
-        #startButton:hover, #stopButton:hover {
-            opacity: 0.8;
-        }
-        #songName {
-            cursor:pointer; font-weight:500;
-        }
-        #artistName {
-            cursor:pointer; font-weight:300;
-        }
-        #coverArt {
-            cursor:pointer; width:80px; height:80px;
-        }
-        #volume {
-            width:100px; height:3px; margin-right:20px
-        }
-        #progress {
-            height:3px; margin: 5px 20px 10px 10px;
         }
     </style>
+</head>
 
-    <script type="text/javascript" language="javascript">
+<body class="bgcolor2 playlistframe" onload="init()">
+
+<span id="dummy-animation-target" style="max-width:50px;display: none"></span>
+
+<script type="text/javascript" language="javascript">
     var songs = null;
     var currentStreamUrl = null;
     var repeatEnabled = false;
-    var castPlayer;
-    var jwPlayer;
-    var jukeboxPlayer = false;
-    var externalPlayer = false;
-    var externalPlayerWithPlaylist = false;
+    var CastPlayer = new CastPlayer();
     var ignore = false;
 
     function init() {
-
-        jukeboxPlayer = ${model.player.jukebox};
-        externalPlayer = ${model.player.external};
-        externalPlayerWithPlaylist = ${model.player.externalWithPlaylist};
-        castPlayer = new CastPlayer(!jukeboxPlayer && !externalPlayer && !externalPlayerWithPlaylist);
-        initMouseListener();
+        <c:if test="${model.autoHide}">initAutoHide();</c:if>
 
         dwr.engine.setErrorHandler(null);
+        startTimer();
 
         $("#dialog-select-playlist").dialog({resizable: true, height: 220, autoOpen: false,
             buttons: {
@@ -97,67 +53,43 @@
                 }
             }});
 
-        $("#progress").slider({max: 0, range: "min"});
-        $("#volume").slider({max: 100, value: 50, animate: "fast", range: "min"});
-        $("#volume").on("slidestop", onVolumeChanged);
-        $("#progress").on("slidestop", onProgressChanged);
-        $(".ui-slider").css("background", $("#dummy").css("background-color"));
-
-        if (!externalPlayerWithPlaylist) {
-            $("#playlistBody").sortable({
-                stop: function (event, ui) {
-                    var indexes = [];
-                    $("#playlistBody").children().each(function () {
-                        var id = $(this).attr("id").replace("pattern", "");
-                        if (id.length > 0) {
-                            indexes.push(parseInt(id) - 1);
-                        }
-                    });
-                    onRearrange(indexes);
-                },
-                cursor: "move",
-                axis: "y",
-                containment: "parent",
-                helper: function (e, tr) {
-                    var originals = tr.children();
-                    var trclone = tr.clone();
-                    trclone.children().each(function (index) {
-                        // Set cloned cell sizes to match the original sizes
-                        $(this).width(originals.eq(index).width());
-                        $(this).css("maxWidth", originals.eq(index).width());
-                        $(this).css("border-top", "1px solid black");
-                        $(this).css("border-bottom", "1px solid black");
-                    });
-                    return trclone;
-                }
-            });
-        }
-
         <c:if test="${model.player.web}">createPlayer();</c:if>
 
-        if (jukeboxPlayer || externalPlayer || externalPlayerWithPlaylist) {
-            startTimer();
-            $("#progress").hide();
-            $("#progress-and-duration").hide();
-        }
-        if (externalPlayer || externalPlayerWithPlaylist) {
-            $("#volume").hide();
-            $("#muteOn").hide();
-            $("#muteOff").hide();
-        }
-        if (externalPlayerWithPlaylist) {
-            $("#nextButton").hide();
-            $("#previousButton").hide();
-        }
+        $("#playlistBody").sortable({
+            stop: function(event, ui) {
+                var indexes = [];
+                $("#playlistBody").children().each(function() {
+                    var id = $(this).attr("id").replace("pattern", "");
+                    if (id.length > 0) {
+                        indexes.push(parseInt(id) - 1);
+                    }
+                });
+                onRearrange(indexes);
+            },
+            cursor: "move",
+            axis: "y",
+            containment: "parent",
+            helper: function(e, tr) {
+                var originals = tr.children();
+                var trclone = tr.clone();
+                trclone.children().each(function(index) {
+                    // Set cloned cell sizes to match the original sizes
+                    $(this).width(originals.eq(index).width());
+                    $(this).css("maxWidth", originals.eq(index).width());
+                    $(this).css("border-top", "1px solid black");
+                    $(this).css("border-bottom", "1px solid black");
+                });
+                return trclone;
+            }
+        });
 
         getPlayQueue();
     }
 
-    function initMouseListener() {
+    function initAutoHide() {
         $(window).mouseleave(function (event) {
             if (event.clientY < 30) {
-                setFrameHeight(95);
-                $(".ui-slider-handle").fadeOut();
+                setFrameHeight(50);
             }
         });
 
@@ -165,94 +97,45 @@
             var height = $("body").height() + 25;
             height = Math.min(height, window.top.innerHeight * 0.8);
             setFrameHeight(height);
-            $(".ui-slider-handle").fadeIn();
         });
     }
 
     function setFrameHeight(height) {
-        <c:if test="${model.autoHide}">
-        parent.setPlayQueueHeight(height);
-        </c:if>
+        $("#dummy-animation-target").stop();
+        $("#dummy-animation-target").animate({"max-width": height}, {
+            step: function (now, fx) {
+                top.document.getElementById("playQueueFrameset").rows = "*," + now;
+            }
+        });
     }
 
     function startTimer() {
         <!-- Periodically check if the current song has changed. -->
         nowPlayingService.getNowPlayingForCurrentPlayer(nowPlayingCallback);
-        setTimeout("startTimer()", 5000);
+        setTimeout("startTimer()", 10000);
     }
 
     function nowPlayingCallback(nowPlayingInfo) {
         if (nowPlayingInfo != null && nowPlayingInfo.streamUrl != currentStreamUrl) {
             getPlayQueue();
+        <c:if test="${not model.player.web}">
             currentStreamUrl = nowPlayingInfo.streamUrl;
             updateCurrentImage();
-            updateCoverArt(songs[getCurrentSongIndex()]);
+        </c:if>
         }
     }
 
     function createPlayer() {
-        jwPlayer = jwplayer("jwplayer");
-        jwPlayer.setup({
-            file: "foo.mp3",
-            height: 0,
-            width: 0
+        jwplayer("jwplayer").setup({
+            flashplayer: "<c:url value="/flash/jw-player-5.10.swf"/>",
+            height: 24,
+            width: 350,
+            controlbar: "bottom",
+            backcolor:"<spring:theme code="backgroundColor"/>",
+            frontcolor:"<spring:theme code="textColor"/>"
         });
 
-        jwPlayer.on("complete", function() {onNext(repeatEnabled)});
-        jwPlayer.on("idle", function() {updateControls()});
-        jwPlayer.on("buffer", function() {updateControls()});
-        jwPlayer.on("play", function() {updateControls()});
-        jwPlayer.on("pause", function() {updateControls()});
-        jwPlayer.on("mute", function() {updateControls()});
-        jwPlayer.on("time", function(event) {updateProgressBar(event.position, event.duration)});
-        $("#volume").slider("option", "value", jwPlayer.getVolume());
-    }
-
-    function updateControls() {
-        var state = jwPlayer.getState();
-        var playing = state == "playing";
-        var buffering = state == "buffering";
-        $("#startButton").toggle(!playing && !buffering);
-        $("#stopButton").toggle(playing && !buffering);
-        $("#bufferButton").toggle(buffering);
-        toggleSpinner(playing);
-
-        var muted = jwPlayer.getMute();
-        $("#muteOn").toggle(!muted);
-        $("#muteOff").toggle(muted);
-    }
-
-    function toggleSpinner(spin) {
-        $(".fa-circle-o-notch").toggleClass("fa-spin", spin);
-    }
-
-    function updateProgressBar(position, duration) {
-        $("#progress").slider("option", "max", Math.round(duration * 1000));
-        $("#progress").slider("option", "value", Math.round(position * 1000));
-        $("#progress-text").html(formatDuration(Math.round(position)));
-        $("#duration-text").html(formatDuration(Math.round(duration)));
-    }
-
-    function formatDuration(duration) {
-        var hours = Math.floor(duration / 3600);
-        duration = duration % 3600;
-        var minutes = Math.floor(duration / 60);
-        var seconds = Math.floor(duration % 60);
-
-        var result = "";
-        if (hours > 0) {
-            result += hours + ":";
-            if (minutes < 10) {
-                result += "0";
-            }
-        }
-        result += minutes + ":";
-        if (seconds < 10) {
-            result += "0";
-        }
-        result += seconds;
-
-        return result;
+        jwplayer().onComplete(function() {onNext(repeatEnabled)});
     }
 
     function getPlayQueue() {
@@ -261,106 +144,41 @@
 
     function onClear() {
         var ok = true;
-        <c:if test="${model.partyMode}">
+    <c:if test="${model.partyMode}">
         ok = confirm("<fmt:message key="playlist.confirmclear"/>");
-        </c:if>
+    </c:if>
         if (ok) {
             playQueueService.clear(playQueueCallback);
         }
     }
-
     function onStart() {
-        if (castPlayer.castSession) {
-            castPlayer.playCast();
-        } else if (jwPlayer) {
-            if (jwPlayer.getPlaylistItem().file == "foo.mp3" ||
-                    jwPlayer.getState() == "complete" && getCurrentSongIndex() == songs.length -1) {
-                skip(0);
-            } else {
-                jwPlayer.play(true);
-            }
-
-        } else {
-            playQueueService.start(playQueueCallback);
-        }
+        playQueueService.start(playQueueCallback);
     }
-
     function onStop() {
-        if (castPlayer.castSession) {
-            castPlayer.pauseCast();
-        } else if (jwPlayer) {
-            jwPlayer.pause(true);
-        } else {
-            playQueueService.stop(playQueueCallback);
-        }
+        playQueueService.stop(playQueueCallback);
     }
-
-    function onVolumeChanged() {
-        var value = parseInt($("#volume").slider("option", "value"));
-        if (value != 0) {
-            $("#muteOn").show();
-            $("#muteOff").hide();
-        }
-        if (castPlayer.castSession) {
-            castPlayer.setCastVolume(value / 100, false);
-        } else if (jwPlayer) {
-            jwPlayer.setVolume(value);
-        } else if (jukeboxPlayer) {
-            playQueueService.setJukeboxGain(value / 100);
-        }
+    function onGain(gain) {
+        playQueueService.setGain(gain);
     }
-
-    function onProgressChanged() {
-        var value = parseInt($("#progress").slider("option", "value") / 1000);
-        if (jwPlayer) {
-            jwPlayer.seek(value);
-        }
+    function onJukeboxVolumeChanged() {
+        var value = parseInt($("#jukeboxVolume").slider("option", "value"));
+        onGain(value / 100);
     }
-
-    function onMute(mute) {
-        $("#muteOn").toggle(!mute);
-        $("#muteOff").toggle(mute);
-
-        if (castPlayer.castSession) {
-            castPlayer.castMute(mute);
-        } else if (jwPlayer) {
-            jwPlayer.setMute(mute);
-        } else if (jukeboxPlayer) {
-            playQueueService.setJukeboxMute(mute);
-        }
+    function onCastVolumeChanged() {
+        var value = parseInt($("#castVolume").slider("option", "value"));
+        CastPlayer.setCastVolume(value / 100, false);
     }
-
-    function keyboardShortcut(action) {
-        if (action == "togglePlayPause") {
-            if ($("#startButton").is(":visible")) {
-                $("#startButton").click();
-            } else if ($("#stopButton").is(":visible")) {
-                $("#stopButton").click();
-            }
-        } else if (action == "previous" && $("#previousButton").is(":visible")) {
-            $("#previousButton").click();
-        } else if (action == "next" && $("#nextButton").is(":visible")) {
-            $("#nextButton").click();
-        } else if (action == "volumeDown" && $("#volume").is(":visible")) {
-            var volume = parseInt($("#volume").slider("option", "value"));
-            $("#volume").slider("option", "value", Math.max(0, volume - 5));
-            onVolumeChanged();
-        } else if (action == "volumeUp" && $("#volume").is(":visible")) {
-            var volume = parseInt($("#volume").slider("option", "value"));
-            $("#volume").slider("option", "value", Math.min(100, volume + 5));
-            onVolumeChanged();
-        } else if (action == "seekForward" && jwPlayer && $("#stopButton").is(":visible")) {
-            var position = parseInt($("#progress").slider("option", "value"));
-            var duration = parseInt($("#progress").slider("option", "max"));
-            $("#progress").slider("option", "value", Math.min(duration, position + 1000));
-            onProgressChanged();
-        } else if (action == "seekBackward" && jwPlayer && $("#stopButton").is(":visible")) {
-            var position = parseInt($("#progress").slider("option", "value"));
-            $("#progress").slider("option", "value", Math.max(0, position - 1000));
-            onProgressChanged();
-        }
+    function onSkip(index) {
+    <c:choose>
+    <c:when test="${model.player.web}">
+        skip(index);
+    </c:when>
+    <c:otherwise>
+        currentStreamUrl = songs[index].streamUrl;
+        playQueueService.skip(index, playQueueCallback);
+    </c:otherwise>
+    </c:choose>
     }
-
     function onNext(wrap) {
         var index = parseInt(getCurrentSongIndex()) + 1;
         if (wrap) {
@@ -369,11 +187,7 @@
         skip(index);
     }
     function onPrevious() {
-        if (jwPlayer && !castPlayer.castSession && jwPlayer.getPosition() > 4.0) {
-            skip(parseInt(getCurrentSongIndex()));
-        } else {
-            skip(Math.max(0, parseInt(getCurrentSongIndex()) - 1));
-        }
+        skip(parseInt(getCurrentSongIndex()) - 1);
     }
     function onPlay(id) {
         playQueueService.play(id, playQueueCallback);
@@ -382,19 +196,8 @@
         playQueueService.playShuffle(albumListType, offset, size, genre, decade, playQueueCallback);
     }
     function onPlayPlaylist(id, index) {
+        index = index || 0;
         playQueueService.playPlaylist(id, index, playQueueCallback);
-    }
-    function onPlayTopSong(id, index) {
-        playQueueService.playTopSong(id, index, playQueueCallback);
-    }
-    function onPlayPodcastChannel(id) {
-        playQueueService.playPodcastChannel(id, playQueueCallback);
-    }
-    function onPlayPodcastEpisode(id) {
-        playQueueService.playPodcastEpisode(id, playQueueCallback);
-    }
-    function onPlayNewestPodcastEpisode(index) {
-        playQueueService.playNewestPodcastEpisode(index, playQueueCallback);
     }
     function onPlayStarred() {
         playQueueService.playStarred(playQueueCallback);
@@ -450,16 +253,10 @@
     function onSortByAlbum() {
         playQueueService.sortByAlbum(playQueueCallback);
     }
-    function onSavePlayQueue() {
-        var positionMillis = jwPlayer ? Math.round(1000.0 * jwPlayer.getPosition()) : 0;
-        playQueueService.savePlayQueue(getCurrentSongIndex(), positionMillis);
-        $().toastmessage("showSuccessToast", "<fmt:message key="playlist.toast.saveplayqueue"/>");
-    }
-    function onLoadPlayQueue() {
-        playQueueService.loadPlayQueue(playQueueCallback);
-    }
     function onSavePlaylist() {
         playlistService.createPlaylistForPlayQueue(function (playlistId) {
+            top.left.updatePlaylists();
+            top.left.showAllPlaylists();
             top.main.location.href = "playlist.view?id=" + playlistId;
             $().toastmessage("showSuccessToast", "<fmt:message key="playlist.toast.saveasplaylist"/>");
         });
@@ -486,13 +283,19 @@
             }
         }
         playlistService.appendToPlaylist(playlistId, mediaFileIds, function (){
+            top.left.updatePlaylists();
             top.main.location.href = "playlist.view?id=" + playlistId;
             $().toastmessage("showSuccessToast", "<fmt:message key="playlist.toast.appendtoplaylist"/>");
         });
     }
+
     function playQueueCallback(playQueue) {
         songs = playQueue.entries;
         repeatEnabled = playQueue.repeatEnabled;
+        if ($("#start")) {
+            $("#start").toggle(!playQueue.stopEnabled);
+            $("#stop").toggle(playQueue.stopEnabled);
+        }
 
         if ($("#toggleRepeat")) {
             var text = repeatEnabled ? "<fmt:message key="playlist.repeat_on"/>" : "<fmt:message key="playlist.repeat_off"/>";
@@ -503,7 +306,7 @@
             $("#songCountAndDuration").html("");
             $("#empty").show();
         } else {
-            $("#songCountAndDuration").html(songs.length + " <fmt:message key="playlist2.songs"/>&nbsp;&nbsp;&bull;&nbsp;&nbsp;" + playQueue.durationAsString);
+            $("#songCountAndDuration").html(songs.length + " <fmt:message key="playlist2.songs"/> &ndash; " + playQueue.durationAsString);
             $("#empty").hide();
         }
 
@@ -520,7 +323,14 @@
             if ($("#trackNumber" + id)) {
                 $("#trackNumber" + id).html(song.trackNumber);
             }
-            $("#starSong" + id).addClass(song.starred ? "fa-star starred" : "fa-star-o");
+            if (song.starred) {
+                $("#starSong" + id).attr("src", "<spring:theme code='ratingOnImage'/>");
+            } else {
+                $("#starSong" + id).attr("src", "<spring:theme code='ratingOffImage'/>");
+            } 
+            if ($("#currentImage" + id) && song.streamUrl == currentStreamUrl) {
+                $("#currentImage" + id).show();
+            }
             if ($("#title" + id)) {
                 $("#title" + id).html(song.title);
                 $("#title" + id).attr("title", song.title);
@@ -528,7 +338,7 @@
             if ($("#titleUrl" + id)) {
                 $("#titleUrl" + id).html(song.title);
                 $("#titleUrl" + id).attr("title", song.title);
-                $("#titleUrl" + id).click(function () {skip(this.id.substring(8) - 1, 0)});
+                $("#titleUrl" + id).click(function () {onSkip(this.id.substring(8) - 1)});
             }
             if ($("#album" + id)) {
                 $("#album" + id).html(song.album);
@@ -558,6 +368,8 @@
                 $("#fileSize" + id).html(song.fileSize);
             }
 
+            $("#pattern" + id).addClass((i % 2 == 0) ? "bgcolor1" : "bgcolor2");
+
             // Note: show() method causes page to scroll to top.
             $("#pattern" + id).css("display", "table-row");
         }
@@ -566,54 +378,26 @@
             parent.frames.main.location.href="play.m3u?";
         }
 
-        if (jukeboxPlayer) {
-            $("#volume").slider("option", "value", Math.floor(playQueue.jukeboxGain * 100));
-            $("#muteOn").toggle(!playQueue.jukeboxMute);
-            $("#muteOff").toggle(playQueue.jukeboxMute);
+        var jukeboxVolume = $("#jukeboxVolume");
+        if (jukeboxVolume) {
+            jukeboxVolume.slider("option", "value", Math.floor(playQueue.gain * 100));
         }
 
-        if (jwPlayer) {
-            triggerPlayer(playQueue.startPlayerAt, playQueue.startPlayerAtPosition);
-        } else {
-            $("#startButton").toggle(!playQueue.stopEnabled);
-            $("#stopButton").toggle(playQueue.stopEnabled);
-            toggleSpinner(playQueue.stopEnabled);
-            if (playQueue.startPlayerAt != -1) {
-                currentStreamUrl = songs[playQueue.startPlayerAt].streamUrl;
-                updateCoverArt(songs[playQueue.startPlayerAt]);
-            }
-            updateCurrentImage();
-        }
+    <c:if test="${model.player.web}">
+        triggerPlayer(playQueue.startPlayerAt);
+    </c:if>
     }
 
-    function triggerPlayer(index, positionMillis) {
-        skip(index);
-        if (positionMillis != 0) {
-            jwPlayer.seek(positionMillis / 1000);
+    function triggerPlayer(startPlayerAt) {
+        if (startPlayerAt != -1) {
+            if (songs.length > startPlayerAt) {
+                skip(startPlayerAt);
+            }
         }
         updateCurrentImage();
         if (songs.length == 0) {
-            jwPlayer.stop();
-            jwPlayer.load({file:"foo.mp3"});
-            updateCoverArt(null);
-            updateProgressBar(0, 0);
-        }
-    }
-
-    function updateCoverArt(song) {
-        var showAlbum = function () {
-            parent.frames.main.location.href = "main.view?id=" + song.id
-        };
-        $("#coverArt").attr("src", song ? "coverArt.view?id=" + song.id + "&auth=" + song.hash + "&size=80" : "");
-        $("#songName").text(song && song.title ? song.title : "");
-        $("#artistName").text(song && song.artist ? song.artist : "");
-        $("#songName").off("click");
-        $("#artistName").off("click");
-        $("#coverArt").off("click");
-        if (song) {
-            $("#songName").click(showAlbum);
-            $("#artistName").click(showAlbum);
-            $("#coverArt").click(showAlbum);
+            jwplayer().stop();
+            jwplayer().load([]);
         }
     }
 
@@ -626,39 +410,27 @@
         currentStreamUrl = song.streamUrl;
         updateCurrentImage();
 
-        if (castPlayer.castSession) {
-            castPlayer.loadCastMedia(song, position);
-        } else if (jwPlayer) {
-            jwPlayer.load({
+        if (CastPlayer.castSession) {
+            CastPlayer.loadCastMedia(song, position);
+        } else {
+            jwplayer().load({
                 file: song.streamUrl,
-                type: song.format
+                provider: song.format == "aac" || song.format == "m4a" ? "video" : "sound",
+                duration: song.duration
             });
             jwplayer().play();
             console.log(song.streamUrl);
-        } else {
-            playQueueService.skip(index, playQueueCallback);
         }
 
         updateWindowTitle(song);
-        updateCoverArt(song);
 
-        if (${model.notify}) {
-            showNotification(song);
-        }
+        <c:if test="${model.notify}">
+        showNotification(song);
+        </c:if>
     }
 
     function updateWindowTitle(song) {
-        var title = "";
-        if (song.title) {
-            title += song.title;
-        }
-        if (song.title && song.artist) {
-            title += " - ";
-        }
-        if (song.artist) {
-            title += song.artist;
-        }
-        top.document.title = title  + " - Subsonic";
+        top.document.title = song.title + " - " + song.artist + " - Subsonic";
     }
 
     function showNotification(song) {
@@ -679,21 +451,10 @@
     }
 
     function createNotification(song) {
-        var body = "";
-        if (song.artist) {
-            body += song.artist;
-        }
-        if (song.artist && song.album) {
-            body += " - ";
-        }
-        if (song.album) {
-            body += song.album;
-        }
-
         var n = new Notification(song.title, {
             tag: "subsonic",
-            body: body,
-            icon: "coverArt.view?id=" + song.id + "&auth=" + song.hash + "&size=110"
+            body: song.artist + " - " + song.album,
+            icon: "coverArt.view?id=" + song.id + "&size=110"
         });
         n.onshow = function() {
             setTimeout(function() {n.close()}, 5000);
@@ -707,7 +468,11 @@
             var image = $("#currentImage" + id);
 
             if (image) {
-                image.toggle(song.streamUrl == currentStreamUrl);
+                if (song.streamUrl == currentStreamUrl) {
+                    image.show();
+                } else {
+                    image.hide();
+                }
             }
         }
     }
@@ -726,10 +491,6 @@
         var selectedIndexes = getSelectedIndexes();
         if (id == "top") {
             return;
-        } else if (id == "savePlayQueue") {
-            onSavePlayQueue();
-        } else if (id == "loadPlayQueue") {
-            onLoadPlayQueue();
         } else if (id == "savePlaylist") {
             onSavePlaylist();
         } else if (id == "downloadPlaylist") {
@@ -776,55 +537,114 @@
         }
     }
 
-    </script>
-</head>
+</script>
 
-<body class="bgcolor2 playlistframe" onload="init()">
-
-<span id="dummy" class="bgcolor1" style="display:none"></span>
-
-<div class="bgcolor2" style="position:fixed; bottom:0; width:100%; z-index:2">
-    <div id="jwplayer"></div>
-
-    <div style="display:flex; margin-top:5px; margin-bottom:7px">
-        <img id="coverArt">
-        <div class="ellipsis" style="flex-grow:1">
-            <div id="progress"></div>
-
-            <div class="ellipsis" style="display:flex; align-items:center; margin-left:10px">
-                <div class="ellipsis" style="flex:1">
-                    <div id="songName" class="ellipsis"></div>
-                    <div id="artistName" class="ellipsis"></div>
-                </div>
-
-                <i id="previousButton" class="fa fa-step-backward" onclick="onPrevious()"></i>
-                <span id="startButton" class="fa-stack fa-lg" onclick="onStart()">
-                    <i class="fa fa-circle fa-stack-2x fa-inverse"></i>
-                    <i class="fa fa-play-circle fa-stack-2x"></i>
-                </span>
-                <span id="stopButton" class="fa-stack fa-lg" onclick="onStop()" style="display:none">
-                    <i class="fa fa-circle fa-stack-2x fa-inverse"></i>
-                    <i class="fa fa-pause-circle fa-stack-2x"></i>
-                </span>
-                <span id="bufferButton" class="fa-stack fa-lg" style="display:none">
-                    <i class="fa fa-circle fa-stack-2x"></i>
-                    <i class="fa fa-refresh fa-stack-1x fa-inverse fa-spin"></i>
-                </span>
-                <i id="nextButton" class="fa fa-step-forward" onclick="onNext(repeatEnabled)"></i>
-                <i id="castOn" class="material-icons" onclick="castPlayer.launchCastApp()">cast</i>
-                <i id="castOff" class="material-icons" onclick="castPlayer.stopCastApp()">cast_connected</i>
-                <div style="flex:1">
-                    <div id="progress-and-duration" class="detail" style="text-align:right">
-                        <span id="progress-text">0:00</span> /
-                        <span id="duration-text">0:00</span>
+<div class="bgcolor2" style="position:fixed; bottom:0; width:100%;padding-top:10px;padding-bottom: 5px">
+    <table style="white-space:nowrap;">
+        <tr style="white-space:nowrap;">
+            <c:if test="${model.user.settingsRole and fn:length(model.players) gt 1}">
+                <td style="padding-right: 5px"><select name="player" onchange="location='playQueue.view?player=' + options[selectedIndex].value;">
+                    <c:forEach items="${model.players}" var="player">
+                        <option ${player.id eq model.player.id ? "selected" : ""} value="${player.id}">${player.shortDescription}</option>
+                    </c:forEach>
+                </select></td>
+            </c:if>
+            <c:if test="${model.player.web}">
+                <td>
+                    <div id="flashPlayer" style="width:340px; height:24px;padding-right:10px">
+                        <div id="jwplayer"><a href="http://www.adobe.com/go/getflashplayer" target="_blank"><fmt:message key="playlist.getflash"/></a></div>
                     </div>
-                </div>
-                <i id="muteOn" class="fa fa-volume-up fa-fw" onclick="onMute(true)"></i>
-                <i id="muteOff" class="fa fa-volume-off fa-fw" onclick="onMute(false)" style="display:none"></i>
-                <div id="volume"></div>
-            </div>
-        </div>
-    </div>
+                    <div id="castPlayer" style="display: none">
+                        <div style="float:left">
+                            <img id="castPlay" src="<spring:theme code="castPlayImage"/>" onclick="CastPlayer.playCast()" style="cursor:pointer">
+                            <img id="castPause" src="<spring:theme code="castPauseImage"/>" onclick="CastPlayer.pauseCast()" style="cursor:pointer; display:none">
+                            <img id="castMuteOn" src="<spring:theme code="volumeImage"/>" onclick="CastPlayer.castMuteOn()" style="cursor:pointer">
+                            <img id="castMuteOff" src="<spring:theme code="muteImage"/>" onclick="CastPlayer.castMuteOff()" style="cursor:pointer; display:none">
+                        </div>
+                        <div style="float:left">
+                            <div id="castVolume" style="width:80px;height:4px;margin-left:10px;margin-right:10px;margin-top:8px"></div>
+                            <script type="text/javascript">
+                                $("#castVolume").slider({max: 100, value: 50, animate: "fast", range: "min"});
+                                $("#castVolume").on("slidestop", onCastVolumeChanged);
+                            </script>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <img id="castOn" src="<spring:theme code="castIdleImage"/>" onclick="CastPlayer.launchCastApp()" style="cursor:pointer; display:none">
+                    <img id="castOff" src="<spring:theme code="castActiveImage"/>" onclick="CastPlayer.stopCastApp()" style="cursor:pointer; display:none">
+                </td>
+            </c:if>
+
+            <c:if test="${model.user.streamRole and not model.player.web}">
+                <td>
+                    <img id="start" src="<spring:theme code="castPlayImage"/>" onclick="onStart()" style="cursor:pointer">
+                    <img id="stop" src="<spring:theme code="castPauseImage"/>" onclick="onStop()" style="cursor:pointer; display:none">
+                </td>
+            </c:if>
+
+            <c:if test="${model.player.jukebox}">
+                <td style="white-space:nowrap;">
+                    <img src="<spring:theme code="volumeImage"/>" alt="">
+                </td>
+                <td style="white-space:nowrap;">
+                    <div id="jukeboxVolume" style="width:80px;height:4px"></div>
+                    <script type="text/javascript">
+                        $("#jukeboxVolume").slider({max: 100, value: 50, animate: "fast", range: "min"});
+                        $("#jukeboxVolume").on("slidestop", onJukeboxVolumeChanged);
+                    </script>
+                </td>
+            </c:if>
+
+            <c:if test="${model.player.web}">
+                <td><span class="header">
+                    <img src="<spring:theme code="backImage"/>" alt="" onclick="onPrevious()" style="cursor:pointer"></span>
+                </td>
+                <td><span class="header">
+                    <img src="<spring:theme code="forwardImage"/>" alt="" onclick="onNext(false)" style="cursor:pointer"></span>
+                </td>
+            </c:if>
+
+            <td style="white-space:nowrap;"><span class="header"><a href="javascript:onClear()"><fmt:message key="playlist.clear"/></a></span> |</td>
+            <td style="white-space:nowrap;"><span class="header"><a href="javascript:onShuffle()"><fmt:message key="playlist.shuffle"/></a></span> |</td>
+
+            <c:if test="${model.player.web or model.player.jukebox or model.player.external}">
+                <td style="white-space:nowrap;"><span class="header"><a href="javascript:onToggleRepeat()"><span id="toggleRepeat"><fmt:message key="playlist.repeat_on"/></span></a></span>  |</td>
+            </c:if>
+
+            <td style="white-space:nowrap;"><span class="header"><a href="javascript:onUndo()"><fmt:message key="playlist.undo"/></a></span>  |</td>
+
+            <c:if test="${model.user.settingsRole}">
+                <td style="white-space:nowrap;"><span class="header"><a href="playerSettings.view?id=${model.player.id}" target="main"><fmt:message key="playlist.settings"/></a></span>  |</td>
+            </c:if>
+
+            <td style="white-space:nowrap;"><select id="moreActions" onchange="actionSelected(this.options[selectedIndex].id)">
+                <option id="top" selected="selected"><fmt:message key="playlist.more"/></option>
+                <optgroup label="<fmt:message key="playlist.more.playlist"/>">
+                    <option id="savePlaylist"><fmt:message key="playlist.save"/></option>
+                    <c:if test="${model.user.downloadRole}">
+                    <option id="downloadPlaylist"><fmt:message key="common.download"/></option>
+                    </c:if>
+                    <c:if test="${model.user.shareRole}">
+                    <option id="sharePlaylist"><fmt:message key="main.more.share"/></option>
+                    </c:if>
+                    <option id="sortByTrack"><fmt:message key="playlist.more.sortbytrack"/></option>
+                    <option id="sortByAlbum"><fmt:message key="playlist.more.sortbyalbum"/></option>
+                    <option id="sortByArtist"><fmt:message key="playlist.more.sortbyartist"/></option>
+                </optgroup>
+                <optgroup label="<fmt:message key="playlist.more.selection"/>">
+                    <option id="selectAll"><fmt:message key="playlist.more.selectall"/></option>
+                    <option id="selectNone"><fmt:message key="playlist.more.selectnone"/></option>
+                    <option id="removeSelected"><fmt:message key="playlist.remove"/></option>
+                    <c:if test="${model.user.downloadRole}">
+                        <option id="download"><fmt:message key="common.download"/></option>
+                    </c:if>
+                    <option id="appendPlaylist"><fmt:message key="playlist.append"/></option>
+                </optgroup>
+            </select>
+            </td>
+
+        </tr></table>
 </div>
 
 <h2 style="float:left"><fmt:message key="playlist.more.playlist"/></h2>
@@ -836,20 +656,19 @@
     <tbody id="playlistBody">
         <tr id="pattern" style="display:none;margin:0;padding:0;border:0">
             <td class="fit">
-                <i id="starSong" class="fa clickable" onclick="onStar(this.id.substring(8) - 1)"></i>
-            </td>
-            <c:if test="${not model.player.externalWithPlaylist}">
-                <td class="fit">
-                    <i id="removeSong" class="fa fa-remove clickable icon" onclick="onRemove(this.id.substring(10) - 1)" title="<fmt:message key="playlist.remove"/>"></i>
-                </td>
-            </c:if>
+                <img id="starSong" onclick="onStar(this.id.substring(8) - 1)" src="<spring:theme code="ratingOffImage"/>"
+                     style="cursor:pointer" alt="" title=""></td>
+            <td class="fit">
+                <img id="removeSong" onclick="onRemove(this.id.substring(10) - 1)" src="<spring:theme code="removeImage"/>"
+                     style="cursor:pointer" alt="<fmt:message key="playlist.remove"/>" title="<fmt:message key="playlist.remove"/>"></td>
             <td class="fit"><input type="checkbox" class="checkbox" id="songIndex"></td>
+
             <c:if test="${model.visibility.trackNumberVisible}">
                 <td class="fit rightalign"><span class="detail" id="trackNumber">1</span></td>
             </c:if>
 
             <td class="truncate">
-                <i id="currentImage" class="fa fa-circle-o-notch fa-spin icon" style="display:none;margin-right:0.5em"></i>
+                <img id="currentImage" src="<spring:theme code="currentImage"/>" alt="" style="display:none;padding-right: 0.5em">
                 <c:choose>
                     <c:when test="${model.player.externalWithPlaylist}">
                         <span id="title" class="songTitle">Title</span>
@@ -888,60 +707,7 @@
     </tbody>
 </table>
 
-<table style="white-space:nowrap;">
-    <tr style="white-space:nowrap;">
-        <c:if test="${model.user.settingsRole and fn:length(model.players) gt 1}">
-            <td style="padding-right: 5px"><select name="player" onchange="location='playQueue.view?player=' + options[selectedIndex].value;">
-                <c:forEach items="${model.players}" var="player">
-                    <option ${player.id eq model.player.id ? "selected" : ""} value="${player.id}">${player.shortDescription}</option>
-                </c:forEach>
-            </select></td>
-        </c:if>
-
-        <c:if test="${model.player.web or model.player.jukebox or model.player.external}">
-            <td style="white-space:nowrap;"><span class="header"><a href="javascript:onClear()"><fmt:message key="playlist.clear"/></a></span> |</td>
-            <td style="white-space:nowrap;"><span class="header"><a href="javascript:onShuffle()"><fmt:message key="playlist.shuffle"/></a></span> |</td>
-            <td style="white-space:nowrap;"><span class="header"><a href="javascript:onToggleRepeat()"><span id="toggleRepeat"><fmt:message key="playlist.repeat_on"/></span></a></span>  |</td>
-            <td style="white-space:nowrap;"><span class="header"><a href="javascript:onUndo()"><fmt:message key="playlist.undo"/></a></span>  |</td>
-        </c:if>
-
-        <c:if test="${model.user.settingsRole}">
-            <td style="white-space:nowrap;"><span class="header"><a href="playerSettings.view?id=${model.player.id}" target="main"><fmt:message key="playlist.settings"/></a></span>  |</td>
-        </c:if>
-
-        <c:if test="${model.player.web or model.player.jukebox or model.player.external}">
-            <td style="white-space:nowrap;"><select id="moreActions" onchange="actionSelected(this.options[selectedIndex].id)">
-                <option id="top" selected="selected"><fmt:message key="playlist.more"/></option>
-                <optgroup label="<fmt:message key="playlist.more.playlist"/>">
-                    <option id="savePlayQueue"><fmt:message key="playlist.saveplayqueue"/></option>
-                    <option id="loadPlayQueue"><fmt:message key="playlist.loadplayqueue"/></option>
-                    <option id="savePlaylist"><fmt:message key="playlist.save"/></option>
-                    <c:if test="${model.user.downloadRole}">
-                        <option id="downloadPlaylist"><fmt:message key="common.download"/></option>
-                    </c:if>
-                    <c:if test="${model.user.shareRole}">
-                        <option id="sharePlaylist"><fmt:message key="main.more.share"/></option>
-                    </c:if>
-                    <option id="sortByTrack"><fmt:message key="playlist.more.sortbytrack"/></option>
-                    <option id="sortByAlbum"><fmt:message key="playlist.more.sortbyalbum"/></option>
-                    <option id="sortByArtist"><fmt:message key="playlist.more.sortbyartist"/></option>
-                </optgroup>
-                <optgroup label="<fmt:message key="playlist.more.selection"/>">
-                    <option id="selectAll"><fmt:message key="playlist.more.selectall"/></option>
-                    <option id="selectNone"><fmt:message key="playlist.more.selectnone"/></option>
-                    <option id="removeSelected"><fmt:message key="playlist.remove"/></option>
-                    <c:if test="${model.user.downloadRole}">
-                        <option id="download"><fmt:message key="common.download"/></option>
-                    </c:if>
-                    <option id="appendPlaylist"><fmt:message key="playlist.append"/></option>
-                </optgroup>
-            </select>
-            </td>
-        </c:if>
-
-    </tr></table>
-
-<div style="height:100px"></div>
+<div style="height:3.2em"></div>
 
 <div id="dialog-select-playlist" title="<fmt:message key="main.addtoplaylist.title"/>" style="display: none;">
     <p><fmt:message key="main.addtoplaylist.text"/></p>

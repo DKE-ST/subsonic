@@ -31,7 +31,6 @@ import org.apache.commons.lang.RandomStringUtils;
 import net.sourceforge.subsonic.Logger;
 import net.sourceforge.subsonic.dao.ShareDao;
 import net.sourceforge.subsonic.domain.MediaFile;
-import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.Share;
 import net.sourceforge.subsonic.domain.User;
 
@@ -68,13 +67,9 @@ public class ShareService {
         return shareDao.getShareById(id);
     }
 
-    public Share getShareByName(String name) {
-        return shareDao.getShareByName(name);
-    }
-
-    public List<MediaFile> getSharedFiles(int id, List<MusicFolder> musicFolders) {
+    public List<MediaFile> getSharedFiles(int id) {
         List<MediaFile> result = new ArrayList<MediaFile>();
-        for (String path : shareDao.getSharedFiles(id, musicFolders)) {
+        for (String path : shareDao.getSharedFiles(id)) {
             try {
                 MediaFile mediaFile = mediaFileService.getMediaFile(path);
                 if (mediaFile != null) {
@@ -116,7 +111,7 @@ public class ShareService {
     }
 
     public String getShareBaseUrl() {
-        return settingsService.getUrlRedirectUrl() + "/share/";
+        return "http://" + settingsService.getUrlRedirectFrom() + ".subsonic.org/share/";
     }
 
     public String getShareUrl(Share share) {

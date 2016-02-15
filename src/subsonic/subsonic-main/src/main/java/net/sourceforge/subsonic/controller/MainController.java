@@ -47,7 +47,6 @@ import net.sourceforge.subsonic.service.PlayerService;
 import net.sourceforge.subsonic.service.RatingService;
 import net.sourceforge.subsonic.service.SecurityService;
 import net.sourceforge.subsonic.service.SettingsService;
-import net.sourceforge.subsonic.util.StringUtil;
 
 /**
  * Controller for the main page.
@@ -84,11 +83,6 @@ public class MainController extends AbstractController {
             return new ModelAndView(new RedirectView("home.view?"));
         }
 
-        String username = securityService.getCurrentUsername(request);
-        if (!securityService.isFolderAccessAllowed(dir, username)) {
-            return new ModelAndView(new RedirectView("accessDenied.view"));
-        }
-
         List<MediaFile> children = mediaFiles.size() == 1 ? mediaFileService.getChildrenOf(dir, true, true, true) : getMultiFolderChildren(mediaFiles);
         List<MediaFile> files = new ArrayList<MediaFile>();
         List<MediaFile> subDirs = new ArrayList<MediaFile>();
@@ -100,6 +94,7 @@ public class MainController extends AbstractController {
             }
         }
 
+        String username = securityService.getCurrentUsername(request);
         UserSettings userSettings = settingsService.getUserSettings(username);
 
         mediaFileService.populateStarredDate(dir, username);
@@ -122,18 +117,31 @@ public class MainController extends AbstractController {
         map.put("viewAsList", isViewAsList(request, userSettings));
         if (dir.isAlbum()) {
             map.put("sieblingAlbums", getSieblingAlbums(dir));
-            map.put("artist", guessArtist(files));
-            map.put("album", guessAlbum(files));
-            map.put("duration", StringUtil.formatDuration(getDuration(files)));
+            map.put("artist", guessArtist(children));
+            map.put("album", guessAlbum(children));
+        }
+
+        try {
+            MediaFile parent = mediaFileService.getParentOf(dir);
+            map.put("parent", parent);
+            map.put("navigateUpAllowed", !mediaFileService.isRoot(parent));
+        } catch (SecurityException x) {
+            // Happens if Podcast directory is outside music folder.
         }
 
         Integer userRating = ratingService.getRatingForUser(username, dir);
+        Double averageRating = ratingService.getAverageRating(dir);
 
         if (userRating == null) {
             userRating = 0;
         }
 
+        if (averageRating == null) {
+            averageRating = 0.0D;
+        }
+
         map.put("userRating", 10 * userRating);
+        map.put("averageRating", Math.round(10.0D * averageRating));
         map.put("starred", mediaFileService.getMediaFileStarredDate(dir.getId(), username) != null);
 
         String view;
@@ -190,32 +198,22 @@ public class MainController extends AbstractController {
         return mediaFiles;
     }
 
-    private String guessArtist(List<MediaFile> files) {
-        for (MediaFile file : files) {
-            if (file.isFile() && file.getArtist() != null) {
-                return file.getArtist();
+    private String guessArtist(List<MediaFile> children) {
+        for (MediaFile child : children) {
+            if (child.isFile() && child.getArtist() != null) {
+                return child.getArtist();
             }
         }
         return null;
     }
 
-    private String guessAlbum(List<MediaFile> files) {
-        for (MediaFile file : files) {
-            if (file.isFile() && file.getArtist() != null) {
-                return file.getAlbumName();
+    private String guessAlbum(List<MediaFile> children) {
+        for (MediaFile child : children) {
+            if (child.isFile() && child.getArtist() != null) {
+                return child.getAlbumName();
             }
         }
         return null;
-    }
-
-    private int getDuration(List<MediaFile> files) {
-        int duration = 0;
-        for (MediaFile file : files) {
-            if (file.isFile() && file.getDurationSeconds() != null) {
-                duration += file.getDurationSeconds();
-            }
-        }
-        return duration;
     }
 
     private List<MediaFile> getMultiFolderChildren(List<MediaFile> mediaFiles) throws IOException {

@@ -30,15 +30,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
 
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
@@ -218,35 +213,7 @@ public class MediaFileService {
             result = new ArrayList<MediaFile>(set);
         }
 
-        result = filterConvertedVideos(result);
-
         return result;
-    }
-
-    private List<MediaFile> filterConvertedVideos(List<MediaFile> files) {
-        final Set<String> convertedFilenames = FluentIterable.from(files)
-                                                             .filter(new Predicate<MediaFile>() {
-                                                                 @Override
-                                                                 public boolean apply(MediaFile input) {
-                                                                     return input.isVideo() && input.getFile().getName().endsWith(".streamable.mp4");
-                                                                 }
-                                                             })
-                                                             .transform(new Function<MediaFile, String>() {
-                                                                 @Override
-                                                                 public String apply(MediaFile input) {
-                                                                     return input.getFile().getName();
-                                                                 }
-                                                             })
-                                                             .toSet();
-
-        return FluentIterable.from(files)
-                             .filter(new Predicate<MediaFile>() {
-                                 @Override
-                                 public boolean apply(MediaFile input) {
-                                     return !convertedFilenames.contains(FilenameUtils.getBaseName(input.getPath()) + ".streamable.mp4");
-                                 }
-                             })
-                             .toList();
     }
 
     /**
@@ -276,90 +243,90 @@ public class MediaFileService {
     /**
      * Returns the most frequently played albums.
      *
-     * @param offset       Number of albums to skip.
-     * @param count        Maximum number of albums to return.
-     * @param musicFolders Only return albums in these folders.
+     * @param offset      Number of albums to skip.
+     * @param count       Maximum number of albums to return.
+     * @param mediaFolder Only return albums in this media folder.
      * @return The most frequently played albums.
      */
-    public List<MediaFile> getMostFrequentlyPlayedAlbums(int offset, int count, List<MusicFolder> musicFolders) {
-        return mediaFileDao.getMostFrequentlyPlayedAlbums(offset, count, musicFolders);
+    public List<MediaFile> getMostFrequentlyPlayedAlbums(int offset, int count, MusicFolder mediaFolder) {
+        return mediaFileDao.getMostFrequentlyPlayedAlbums(offset, count, mediaFolder);
     }
 
     /**
      * Returns the most recently played albums.
      *
-     * @param offset       Number of albums to skip.
-     * @param count        Maximum number of albums to return.
-     * @param musicFolders Only return albums in these folders.
+     * @param offset      Number of albums to skip.
+     * @param count       Maximum number of albums to return.
+     * @param mediaFolder Only return albums in this media folder.
      * @return The most recently played albums.
      */
-    public List<MediaFile> getMostRecentlyPlayedAlbums(int offset, int count, List<MusicFolder> musicFolders) {
-        return mediaFileDao.getMostRecentlyPlayedAlbums(offset, count, musicFolders);
+    public List<MediaFile> getMostRecentlyPlayedAlbums(int offset, int count, MusicFolder mediaFolder) {
+        return mediaFileDao.getMostRecentlyPlayedAlbums(offset, count, mediaFolder);
     }
 
     /**
      * Returns the most recently added albums.
      *
-     * @param offset       Number of albums to skip.
-     * @param count        Maximum number of albums to return.
-     * @param musicFolders Only return albums in these folders.
+     * @param offset      Number of albums to skip.
+     * @param count       Maximum number of albums to return.
+     * @param mediaFolder Only return albums in this media folder.
      * @return The most recently added albums.
      */
-    public List<MediaFile> getNewestAlbums(int offset, int count, List<MusicFolder> musicFolders) {
-        return mediaFileDao.getNewestAlbums(offset, count, musicFolders);
+    public List<MediaFile> getNewestAlbums(int offset, int count, MusicFolder mediaFolder) {
+        return mediaFileDao.getNewestAlbums(offset, count, mediaFolder);
     }
 
     /**
      * Returns the most recently starred albums.
      *
-     * @param offset       Number of albums to skip.
-     * @param count        Maximum number of albums to return.
-     * @param username     Returns albums starred by this user.
-     * @param musicFolders Only return albums from these folders.
+     * @param offset      Number of albums to skip.
+     * @param count       Maximum number of albums to return.
+     * @param username    Returns albums starred by this user.
+     * @param mediaFolder Only return albums in this media folder.
      * @return The most recently starred albums for this user.
      */
-    public List<MediaFile> getStarredAlbums(int offset, int count, String username, List<MusicFolder> musicFolders) {
-        return mediaFileDao.getStarredAlbums(offset, count, username, musicFolders);
+    public List<MediaFile> getStarredAlbums(int offset, int count, String username, MusicFolder mediaFolder) {
+        return mediaFileDao.getStarredAlbums(offset, count, username, mediaFolder);
     }
 
     /**
      * Returns albums in alphabetical order.
      *
-     * @param offset       Number of albums to skip.
-     * @param count        Maximum number of albums to return.
-     * @param byArtist     Whether to sort by artist name
-     * @param musicFolders Only return albums in these folders.
+     * @param offset      Number of albums to skip.
+     * @param count       Maximum number of albums to return.
+     * @param byArtist    Whether to sort by artist name
+     * @param mediaFolder Only return albums in this media folder.
      * @return Albums in alphabetical order.
      */
-    public List<MediaFile> getAlphabeticalAlbums(int offset, int count, boolean byArtist, List<MusicFolder> musicFolders) {
-        return mediaFileDao.getAlphabeticalAlbums(offset, count, byArtist, musicFolders);
+    public List<MediaFile> getAlphabeticalAlbums(int offset, int count, boolean byArtist, MusicFolder mediaFolder) {
+        return mediaFileDao.getAlphabeticalAlbums(offset, count, byArtist, mediaFolder);
     }
 
     /**
      * Returns albums within a year range.
      *
-     * @param offset       Number of albums to skip.
-     * @param count        Maximum number of albums to return.
-     * @param fromYear     The first year in the range.
-     * @param toYear       The last year in the range.
-     * @param musicFolders Only return albums in these folders.
+     * @param offset      Number of albums to skip.
+     * @param count       Maximum number of albums to return.
+     * @param fromYear    The first year in the range.
+     * @param toYear      The last year in the range.
+     * @param mediaFolder Only return albums in this media folder.
      * @return Albums in the year range.
      */
-    public List<MediaFile> getAlbumsByYear(int offset, int count, int fromYear, int toYear, List<MusicFolder> musicFolders) {
-        return mediaFileDao.getAlbumsByYear(offset, count, fromYear, toYear, musicFolders);
+    public List<MediaFile> getAlbumsByYear(int offset, int count, int fromYear, int toYear, MusicFolder mediaFolder) {
+        return mediaFileDao.getAlbumsByYear(offset, count, fromYear, toYear, mediaFolder);
     }
 
     /**
      * Returns albums in a genre.
      *
-     * @param offset       Number of albums to skip.
-     * @param count        Maximum number of albums to return.
-     * @param genre        The genre name.
-     * @param musicFolders Only return albums in these folders.
+     * @param offset      Number of albums to skip.
+     * @param count       Maximum number of albums to return.
+     * @param genre       The genre name.
+     * @param mediaFolder Only return albums in this media folder.
      * @return Albums in the genre.
      */
-    public List<MediaFile> getAlbumsByGenre(int offset, int count, String genre, List<MusicFolder> musicFolders) {
-        return mediaFileDao.getAlbumsByGenre(offset, count, genre, musicFolders);
+    public List<MediaFile> getAlbumsByGenre(int offset, int count, String genre, MusicFolder mediaFolder) {
+        return mediaFileDao.getAlbumsByGenre(offset, count, genre, mediaFolder);
     }
 
     /**
@@ -369,7 +336,7 @@ public class MediaFileService {
      * @param count  Max number of songs to return.
      * @return Random songs.
      */
-    public List<MediaFile> getRandomSongsForParent(MediaFile parent, int count) {
+    public List<MediaFile> getRandomSongsForParent(MediaFile parent, int count) throws IOException {
         List<MediaFile> children = getDescendantsOf(parent, false);
         removeVideoFiles(children);
 
@@ -477,9 +444,9 @@ public class MediaFileService {
      */
     private boolean isExcluded(File file) {
 
-        // Exclude all hidden files starting with a single "." or "@eaDir" (thumbnail dir created on Synology devices).
+        // Exclude all hidden files starting with a "." or "@eaDir" (thumbnail dir created on Synology devices).
         String name = file.getName();
-        return (name.startsWith(".") && !name.startsWith("..")) || name.startsWith("@eaDir") || name.equals("Thumbs.db");
+        return name.startsWith(".") || name.startsWith("@eaDir") || name.equals("Thumbs.db");
     }
 
     private MediaFile createMediaFile(File file) {
@@ -721,18 +688,6 @@ public class MediaFileService {
             album.setPlayCount(album.getPlayCount() + 1);
             albumDao.createOrUpdateAlbum(album);
         }
-    }
-
-    public int getAlbumCount(List<MusicFolder> musicFolders) {
-        return mediaFileDao.getAlbumCount(musicFolders);
-    }
-
-    public int getPlayedAlbumCount(List<MusicFolder> musicFolders) {
-        return mediaFileDao.getPlayedAlbumCount(musicFolders);
-    }
-
-    public int getStarredAlbumCount(String username, List<MusicFolder> musicFolders) {
-        return mediaFileDao.getStarredAlbumCount(username, musicFolders);
     }
 
     public void clearMemoryCache() {

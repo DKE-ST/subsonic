@@ -68,10 +68,6 @@ public final class FileUtil {
         });
     }
 
-    public static boolean exists(String path) {
-        return exists(new File(path));
-    }
-
     public static long lastModified(final File file) {
         return timed(new FileTask<Long>("lastModified", file) {
             @Override

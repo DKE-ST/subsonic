@@ -21,7 +21,6 @@ package net.sourceforge.subsonic.command;
 import java.util.List;
 
 import net.sourceforge.subsonic.controller.PersonalSettingsController;
-import net.sourceforge.subsonic.domain.AlbumListType;
 import net.sourceforge.subsonic.domain.Avatar;
 import net.sourceforge.subsonic.domain.Theme;
 import net.sourceforge.subsonic.domain.User;
@@ -38,8 +37,6 @@ public class PersonalSettingsCommand {
     private String[] locales;
     private String themeIndex;
     private Theme[] themes;
-    private String albumListId;
-    private AlbumListType[] albumLists;
     private int avatarId;
     private List<Avatar> avatars;
     private Avatar customAvatar;
@@ -54,7 +51,6 @@ public class PersonalSettingsCommand {
     private boolean finalVersionNotificationEnabled;
     private boolean betaVersionNotificationEnabled;
     private boolean songNotificationEnabled;
-    private boolean queueFollowingSongs;
     private boolean lastFmEnabled;
     private String lastFmUsername;
     private String lastFmPassword;
@@ -98,22 +94,6 @@ public class PersonalSettingsCommand {
 
     public void setThemes(Theme[] themes) {
         this.themes = themes;
-    }
-
-    public String getAlbumListId() {
-        return albumListId;
-    }
-
-    public void setAlbumListId(String albumListId) {
-        this.albumListId = albumListId;
-    }
-
-    public AlbumListType[] getAlbumLists() {
-        return albumLists;
-    }
-
-    public void setAlbumLists(AlbumListType[] albumLists) {
-        this.albumLists = albumLists;
     }
 
     public int getAvatarId() {
@@ -258,13 +238,5 @@ public class PersonalSettingsCommand {
 
     public void setReloadNeeded(boolean reloadNeeded) {
         isReloadNeeded = reloadNeeded;
-    }
-
-    public boolean isQueueFollowingSongs() {
-        return queueFollowingSongs;
-    }
-
-    public void setQueueFollowingSongs(boolean queueFollowingSongs) {
-        this.queueFollowingSongs = queueFollowingSongs;
     }
 }

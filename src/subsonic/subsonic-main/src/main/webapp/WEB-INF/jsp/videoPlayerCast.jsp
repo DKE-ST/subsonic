@@ -20,7 +20,6 @@
         'LOADED': 'LOADED',
         'PLAYING': 'PLAYING',
         'PAUSED': 'PAUSED',
-        'BUFFERING': 'BUFFERING',
         'SEEKING': 'SEEKING'
     };
 
@@ -51,6 +50,9 @@
         // @type {Number} volume between 0 and 100
         this.currentVolume = 50;
 
+        // @type {Boolean} A flag for autoplay after load
+        this.autoplay = true;
+
         // @type {string} a chrome.cast.Session object
         this.session = null;
 
@@ -70,115 +72,66 @@
         // @type {Boolean} Muted audio
         this.muted = false;
 
-        // @type {Number} A number for current media time
+        // @type {Number} A number for current media offset
+        this.currentMediaOffset = 0;
+
+        // @type {Number} A number for current media time, relative to offset
         this.currentMediaTime = 0;
 
         // @type {Number} A number for current media duration
         this.currentMediaDuration = ${empty model.duration ? 0: model.duration};
 
-        this.initialPosition = ${empty model.position ? 'null' : model.position};
-        this.hasCaptions = ${model.hasCaptions};
+        // @type {Boolean} A boolean to stop timer update of progress when triggered by media status event
+        this.seekInProgress = false;
 
         this.updateDurationLabel();
         this.initializeUI();
         this.initializeLocalPlayer();
         this.initializeCastPlayer();
+        this.playMediaLocally(0);
     };
 
     /**
      * Initialize local media player
      */
     CastPlayer.prototype.initializeLocalPlayer = function () {
-        this.localPlayer = jwplayer("jwplayer");
-
-        var tracks = this.hasCaptions ? [{
-            file: "captions.view?id=${model.video.id}&auth=${model.video.hash}",
-            kind: "captions",
-            "default": true
-        }] : [];
-
-        this.localPlayer.setup({
-            height: "85%",
-            width: "100%",
-            title: "${fn:escapeXml(model.video.title)}",
-            image: "coverArt.view?id=${model.video.id}&size=600&auth=${model.video.hash}&offset=" + this.duration / 10,
-            sources: [{
-                file: "stream?id=${model.video.id}&player=${model.player.id}&auth=${model.video.hash}&format=raw",
-                type: "${model.video.format}"
-            }],
-            tracks: tracks
+        jwplayer("jwplayer").setup({
+            flashplayer: "<c:url value="/flash/jw-player-5.10.swf"/>",
+            height: 360,
+            width: 640,
+            skin: "<c:url value="/flash/jw-player-subsonic-skin.zip"/>",
+            screencolor: "000000",
+            controlbar: "over",
+            autostart: "false",
+            bufferlength: 3,
+            provider: "video",
+            events: {
+                onTime: this.updateLocalProgress.bind(this),
+                onPlay: this.updateLocalState.bind(this),
+                onPause: this.updateLocalState.bind(this),
+                onIdle: this.updateLocalState.bind(this)
+            }
         });
 
-        this.localPlayer.on("play", this.updateLocalState.bind(this));
-        this.localPlayer.on("pause", this.updateLocalState.bind(this));
-        this.localPlayer.on("buffer", this.updateLocalState.bind(this));
-        this.localPlayer.on("idle", this.updateLocalState.bind(this));
-        this.localPlayer.on("complete", this.updateLocalState.bind(this));
-        this.localPlayer.on("error", this.updateLocalState.bind(this));
-        this.localPlayer.on("seek", this.updateLocalState.bind(this));
-        this.localPlayer.on("seeked", this.updateLocalState.bind(this));
-        this.localPlayer.on("mute", this.updateLocalVolume.bind(this));
-        this.localPlayer.on("volume", this.updateLocalVolume.bind(this));
-        this.localPlayer.on("time", this.updateLocalProgress.bind(this));
-        this.localPlayer.on("ready", this.onPlayerReady.bind(this));
-        this.localPlayer.on("resize", this.onPlayerResize.bind(this));
-        this.localPlayer.on("fullscreen", this.onPlayerFullscreen.bind(this));
-        this.localPlayer.on("captionsChanged", this.onCaptionsChanged.bind(this));
-    };
-
-    CastPlayer.prototype.onPlayerReady = function () {
-        $(".jw-controlbar").hide();
+        this.localPlayer = jwplayer();
         this.localPlayer.setMute(false);
         this.localPlayer.setVolume(this.currentVolume);
-        if (this.initialPosition) {
-            this.localPlayer.seek(this.initialPosition);
-        }
-        if (this.hasCaptions) {
-            this.toggleCaptions(true);
-        }
-    };
-
-    CastPlayer.prototype.onPlayerResize = function (event) {
-        $("#overlay")
-                .width($("#jwplayer").width())
-                .height($("#jwplayer").height());
-    };
-
-    CastPlayer.prototype.onPlayerFullscreen = function (event) {
-        $(".jw-controlbar").toggle(event.fullscreen);
-    };
-
-    CastPlayer.prototype.onCaptionsChanged = function (event) {
-        var enabled = event.track > 0;
-        $("#cc-on").toggle(enabled);
-        $("#cc-off").toggle(!enabled);
     };
 
     CastPlayer.prototype.updateLocalProgress = function (event) {
         var newTime = Math.round(event.position);
-        if (newTime != this.currentMediaTime) {
+        if (newTime != this.currentMediaTime && !this.seekInProgress) {
             this.currentMediaTime = newTime;
             this.updateProgressBar();
         }
     };
 
-    CastPlayer.prototype.updateLocalVolume = function (event) {
-        var mute = this.localPlayer.getMute();
-        $("#volume-slider").slider("option", "value", this.localPlayer.getVolume());
-        $("#audio-off").toggle(mute);
-        $("#audio-on").toggle(!mute);
-    };
-
     CastPlayer.prototype.updateLocalState = function () {
-        var state = this.localPlayer.getState();
-        console.log("JW player state: " + state);
-        if (state == "playing") {
+        if (this.localPlayer.getState() == "PLAYING" || this.localPlayer.getState() == "BUFFERING") {
             this.localPlayerState = PLAYER_STATE.PLAYING;
-        } else if (state == "buffering") {
-            this.localPlayerState = PLAYER_STATE.BUFFERING;
-        } else if (state == "paused") {
+        } else if (this.localPlayer.getState() == "PAUSED") {
             this.localPlayerState = PLAYER_STATE.PAUSED;
-        } else if (state == "idle" || state == 'complete') {
+        } else if (this.localPlayer.getState() == "IDLE") {
             this.localPlayerState = PLAYER_STATE.IDLE;
         }
         this.updateMediaControlUI();
@@ -276,7 +229,7 @@
             this.currentMediaSession = null;
 
             // continue to play media locally
-            this.playMediaLocally(this.currentMediaTime);
+            this.playMediaLocally(this.currentMediaOffset + this.currentMediaTime);
             this.updateMediaControlUI();
         }
     };
@@ -332,7 +285,7 @@
         this.currentMediaSession = null;
 
         // continue to play media locally
-        this.playMediaLocally(this.currentMediaTime);
+        this.playMediaLocally(this.currentMediaOffset + this.currentMediaTime);
         this.updateMediaControlUI();
     };
 
@@ -344,11 +297,14 @@
             console.log("no session");
             return;
         }
+        var offset = this.currentMediaOffset + this.currentMediaTime;
+        this.currentMediaOffset = offset;
+        this.currentMediaTime = 0;
 
-        var url = "${model.remoteStreamUrl}";
+        var url = "${model.remoteStreamUrl}" + "&maxBitRate=" + this.getBitRate() + "&format=mkv&timeOffset=" + offset;
         console.log("casting " + url);
         var mediaInfo = new chrome.cast.media.MediaInfo(url);
-        mediaInfo.contentType = 'video/mp4';
+        mediaInfo.contentType = 'video/x-matroska';
         mediaInfo.streamType = chrome.cast.media.StreamType.BUFFERED;
         mediaInfo.duration = this.currentMediaDuration;
         mediaInfo.metadata = new chrome.cast.media.MovieMediaMetadata();
@@ -356,25 +312,9 @@
         mediaInfo.metadata.title = "${model.video.title}";
         mediaInfo.metadata.images = [new chrome.cast.Image("${model.remoteCoverArtUrl}&size=384")];
 
-        if (this.hasCaptions) {
-            var track = new chrome.cast.media.Track(1, chrome.cast.media.TrackType.TEXT);
-            track.trackContentId = "${model.remoteCaptionsUrl}&format=vtt";
-            track.trackContentType = 'text/vtt';
-            track.subtype = chrome.cast.media.TextTrackType.SUBTITLES;
-            track.name = 'Subtitles';
-            track.language = 'en-US';
-            track.customData = null;
-
-            mediaInfo.tracks = [track];
-        }
-
         var request = new chrome.cast.media.LoadRequest(mediaInfo);
-        request.autoplay = true;
-        request.currentTime = this.currentMediaTime;
-
-        if (this.hasCaptions && this.localPlayer.getCurrentCaptions() == 1) {
-            request.activeTrackIds = [1];
-        }
+        request.autoplay = this.autoplay;
+        request.currentTime = 0;
 
         this.castPlayerState = PLAYER_STATE.LOADING;
         console.log(this.castPlayerState + " (loadMedia)");
@@ -382,8 +322,6 @@
         this.session.loadMedia(request,
                 this.onMediaDiscovered.bind(this, 'loadMedia'),
                 this.onLoadMediaError.bind(this));
-
-        this.updateMediaControlUI();
     };
 
     /**
@@ -395,7 +333,7 @@
         console.log("new media session ID:" + mediaSession.mediaSessionId + ' (' + how + ')');
         this.currentMediaSession = mediaSession;
         if (how == 'loadMedia') {
-            this.castPlayerState = PLAYER_STATE.LOADED;
+            this.castPlayerState = this.castPlayerState = PLAYER_STATE.LOADED;
             console.log(this.castPlayerState + " (onMediaDiscovered-loadMedia)");
         }
 
@@ -445,7 +383,7 @@
      */
     CastPlayer.prototype.incrementMediaTime = function () {
         if (this.castPlayerState == PLAYER_STATE.PLAYING) {
-            if (this.currentMediaTime < this.currentMediaDuration) {
+            if (this.currentMediaOffset + this.currentMediaTime < this.currentMediaDuration) {
                 this.currentMediaTime += 1;
                 this.updateProgressBar();
             }
@@ -482,11 +420,11 @@
     };
 
     /**
-     * Play media in Cast or local mode
+     * Play media in Cast mode
      */
     CastPlayer.prototype.playMedia = function () {
         if (!this.currentMediaSession) {
-            this.localPlayer.play(true);
+            this.playMediaLocally(0);
             return;
         }
 
@@ -518,9 +456,29 @@
      * @param {Number} offset A number for media current position
      */
     CastPlayer.prototype.playMediaLocally = function (offset) {
-        this.localPlayer.play();
-        this.localPlayer.seek(offset);
+
+        if (this.localPlayerState == PLAYER_STATE.PLAYING || this.localPlayerState == PLAYER_STATE.PAUSED) {
+            this.localPlayer.play();
+        } else {
+            this.currentMediaOffset = offset;
+            this.currentMediaTime = 0;
+
+            var url = "${model.streamUrl}" + "&maxBitRate=" + this.getBitRate() + "&timeOffset=" + offset;
+            console.log("playing local: " + url);
+
+            this.localPlayer.load({
+                file: url,
+                duration: this.currentMediaDuration,
+                provider: "video"
+            });
+            this.localPlayer.play();
+            this.seekInProgress = false;
+        }
         this.updateMediaControlUI();
+    };
+
+    CastPlayer.prototype.getBitRate = function () {
+        return $("#bitrate_menu").val();
     };
 
     /**
@@ -543,6 +501,14 @@
     };
 
     /**
+     * Changes the bit rate.
+     */
+    CastPlayer.prototype.changeBitRate = function () {
+        // This effectively restarts streaming with the new bit rate.
+        this.seekMedia();
+    };
+
+    /**
      * Share the video.
      */
     CastPlayer.prototype.share = function () {
@@ -554,29 +520,6 @@
      */
     CastPlayer.prototype.download = function () {
         location.href = "download.view?id=${model.video.id}";
-    };
-
-    /**
-     * Turns captions on/off.
-     */
-    CastPlayer.prototype.toggleCaptions = function (enabled) {
-        this.localPlayer.setCurrentCaptions(enabled ? 1 : 0);
-
-        if (this.currentMediaSession) {
-            var request = new chrome.cast.media.EditTracksInfoRequest(enabled ? [1] : []);
-            this.currentMediaSession.editTracksInfo(request,
-                    this.mediaCommandSuccessCallback.bind(this, "editTracksInfo " + this.currentMediaSession.sessionId),
-                    this.onError.bind(this));
-
-        }
-    };
-
-    /**
-     * Open the video in a new window.
-     */
-    CastPlayer.prototype.newWindow = function () {
-        this.localPlayer.pause(true);
-        window.open("videoPlayer.view?id=${model.video.id}&position=" + Math.round(this.localPlayer.getPosition()));
     };
 
     /**
@@ -600,7 +543,7 @@
      * @param {Boolean} mute A boolean
      */
     CastPlayer.prototype.setVolume = function (mute) {
-        this.currentVolume = parseInt($("#volume-slider").slider("option", "value"));
+        this.currentVolume = parseInt($("#volume_slider").slider("option", "value"));
 
         if (!this.currentMediaSession) {
             this.localPlayer.setMute(mute);
@@ -638,11 +581,14 @@
      */
     CastPlayer.prototype.seekMedia = function () {
 
-        var offset = parseInt($("#progress-slider").slider("option", "value"));
-        this.currentMediaTime = offset;
+        var offset = parseInt($("#progress_slider").slider("option", "value"));
+        this.seekInProgress = true;
+        this.currentMediaOffset = offset;
+        this.currentMediaTime = 0;
 
         if (this.localPlayerState == PLAYER_STATE.PLAYING || this.localPlayerState == PLAYER_STATE.PAUSED) {
-            this.localPlayer.seek(offset);
+            this.localPlayerState = PLAYER_STATE.SEEKING;
+            this.playMediaLocally(offset);
             return;
         }
 
@@ -650,14 +596,8 @@
             return;
         }
 
-        var seekRequest = new chrome.cast.media.SeekRequest();
-        seekRequest.currentTime = offset;
-        console.log(seekRequest);
-        this.currentMediaSession.seek(seekRequest,
-                this.mediaCommandSuccessCallback.bind(this, "seek " + this.currentMediaSession.sessionId),
-                this.onError.bind(this));
-
         this.castPlayerState = PLAYER_STATE.SEEKING;
+        this.loadMedia();
         this.updateMediaControlUI();
     };
 
@@ -675,12 +615,13 @@
      * Update progress bar with the current media time.
      */
     CastPlayer.prototype.updateProgressBar = function () {
-        $("#progress-slider").slider("option", "value", this.currentMediaTime);
-        $("#progress").html(this.formatDuration(this.currentMediaTime));
+        $("#progress_slider").slider("option", "value", this.currentMediaOffset + this.currentMediaTime);
+        $("#progress").html(this.formatDuration(this.currentMediaOffset + this.currentMediaTime));
     };
 
     CastPlayer.prototype.updateDebug = function () {
-        var debug = "<br>currentMediaTime: " + this.currentMediaTime + "<br>"
+        var debug = "<br>currentMediaOffset: " + this.currentMediaOffset + "<br>"
+                + "currentMediaTime: " + this.currentMediaTime + "<br>"
                 + "localPlayerState: " + this.localPlayerState + "<br>"
                 + "castPlayerState: " + this.castPlayerState;
         $("#debug").html(debug);
@@ -694,39 +635,36 @@
         var playerState = this.localPlayerState;
 
         if (this.deviceState == DEVICE_STATE.NOT_PRESENT) {
-            $("#cast-active").hide();
-            $("#cast-idle").hide();
-            $("#overlay").hide();
+            $("#casticonactive").hide();
+            $("#casticonidle").hide();
+            $("#overlay_text").hide();
+            var loaded = this.localPlayer.getPlaylist().length > 0;
+            $("#overlay").toggle(!loaded);
         } else if (this.deviceState == DEVICE_STATE.ACTIVE) {
-            $("#cast-active").show();
-            $("#cast-idle").hide();
-            $("#overlay").css("display", "flex");
+            $("#casticonactive").show();
+            $("#casticonidle").hide();
+            $("#overlay_text").show();
+            $("#overlay").show();
             playerState = this.castPlayerState;
         } else {
-            $("#cast-active").hide();
-            $("#cast-idle").show();
-            $("#overlay").hide();
+            $("#casticonactive").hide();
+            $("#casticonidle").show();
+            $("#overlay_text").hide();
+            var loaded = this.localPlayer.getPlaylist().length > 0;
+            $("#overlay").toggle(!loaded);
         }
 
         switch (playerState) {
-            case PLAYER_STATE.PAUSED:
-            case PLAYER_STATE.IDLE:
-                $("#play").show();
-                $("#pause").hide();
-                $("#buffer").hide();
-                break;
+            case PLAYER_STATE.LOADED:
             case PLAYER_STATE.PLAYING:
                 $("#play").hide();
                 $("#pause").show();
-                $("#buffer").hide();
                 break;
-            case PLAYER_STATE.LOADED:
+            case PLAYER_STATE.PAUSED:
+            case PLAYER_STATE.IDLE:
             case PLAYER_STATE.LOADING:
-            case PLAYER_STATE.BUFFERING:
-            case PLAYER_STATE.SEEKING:
-                $("#play").hide();
+                $("#play").show();
                 $("#pause").hide();
-                $("#buffer").show();
                 break;
             default:
                 break;
@@ -738,25 +676,21 @@
      */
     CastPlayer.prototype.initializeUI = function () {
 
-        $("#progress-slider").slider({max: this.currentMediaDuration, range: "min"});
-        $("#volume-slider").slider({max: 100, value: 50, animate: "fast", range: "min"});
+        $("#progress_slider").slider({max: this.currentMediaDuration, animate: "fast", range: "min"});
+        $("#volume_slider").slider({max: 100, value: 50, animate: "fast", range: "min"});
 
         // add event handlers to UI components
-        $("#cast-idle").on('click', this.launchApp.bind(this));
-        $("#cast-active").on('click', this.stopApp.bind(this));
-        $("#progress-slider").on('slidestop', this.seekMedia.bind(this));
-        $("#volume-slider").on('slidestop', this.setVolume.bind(this, false));
-        $("#audio-on").on('click', this.muteMedia.bind(this));
-        $("#audio-off").on('click', this.muteMedia.bind(this));
+        $("#casticonidle").on('click', this.launchApp.bind(this));
+        $("#casticonactive").on('click', this.stopApp.bind(this));
+        $("#progress_slider").on('slidestop', this.seekMedia.bind(this));
+        $("#volume_slider").on('slidestop', this.setVolume.bind(this, false));
+        $("#audio_on").on('click', this.muteMedia.bind(this));
+        $("#audio_off").on('click', this.muteMedia.bind(this));
         $("#play").on('click', this.playMedia.bind(this));
         $("#pause").on('click', this.pauseMedia.bind(this));
-        $("#cc-on").on('click', this.toggleCaptions.bind(this, false));
-        $("#cc-off").on('click', this.toggleCaptions.bind(this, true));
+        $("#bitrate_menu").on('change', this.changeBitRate.bind(this));
         $("#share").on('click', this.share.bind(this));
         $("#download").on('click', this.download.bind(this));
-        $("#new-window").on('click', this.newWindow.bind(this)).toggle(this.initialPosition == null);
-
-        $("#cc-on").toggle(this.hasCaptions);
 
         <c:if test="${not model.user.shareRole}">
         $("#share").hide();
@@ -764,13 +698,6 @@
         <c:if test="${not model.user.downloadRole}">
         $("#download").hide();
         </c:if>
-
-        $("#media-control").mouseenter(function (event) {
-                $(".ui-slider-handle").fadeIn();
-        });
-        $("#media-control").mouseleave(function (event) {
-                $(".ui-slider-handle").fadeOut();
-        });
 
 //        setInterval(this.updateDebug.bind(this), 100);
     };

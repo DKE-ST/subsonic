@@ -18,7 +18,6 @@
  */
 package net.sourceforge.subsonic;
 
-import net.sourceforge.subsonic.domain.Version;
 import net.sourceforge.subsonic.service.*;
 import net.sourceforge.subsonic.util.*;
 import org.apache.commons.lang.exception.*;
@@ -43,7 +42,6 @@ public class Logger {
 
     private static List<Entry> entries = Collections.synchronizedList(new BoundedList<Entry>(50));
     private static PrintWriter writer;
-    private static Boolean debugEnabled;
 
     /**
      * Creates a logger for the given class.
@@ -68,7 +66,7 @@ public class Logger {
      * @return The last few log entries.
      */
     public static Entry[] getLatestLogEntries() {
-        return entries.toArray(new Entry[entries.size()]);
+        return entries.toArray(new Entry[0]);
     }
 
     private Logger(String name) {
@@ -94,22 +92,7 @@ public class Logger {
      * @param error The optional exception.
      */
     public void debug(Object message, Throwable error) {
-        if (isDebugEnabled()) {
-            add(Level.DEBUG, message, error);
-        }
-    }
-
-    private static boolean isDebugEnabled() {
-//        if (debugEnabled == null) {
-//            VersionService versionService = ServiceLocator.getVersionService();
-//            if (versionService == null) {
-//                return true;  // versionService not yet available.
-//            }
-//            Version localVersion = versionService.getLocalVersion();
-//            debugEnabled = localVersion == null || localVersion.getBeta() != 0;
-//        }
-//        return debugEnabled;
-        return true;
+        add(Level.DEBUG, message, error);
     }
 
     /**
@@ -168,7 +151,8 @@ public class Logger {
         try {
             getPrintWriter().println(entry);
         } catch (IOException x) {
-            System.err.println("Failed to write to subsonic.log. " + x);
+            System.err.println("Failed to write to subsonic.log.");
+            x.printStackTrace();
         }
         entries.add(entry);
     }
@@ -232,16 +216,16 @@ public class Logger {
         }
 
         public String toString() {
-            StringBuilder builder = new StringBuilder();
-            builder.append('[').append(DATE_FORMAT.format(date)).append("] ");
-            builder.append(level).append(' ');
-            builder.append(category).append(" - ");
-            builder.append(message);
+            StringBuffer buf = new StringBuffer();
+            buf.append('[').append(DATE_FORMAT.format(date)).append("] ");
+            buf.append(level).append(' ');
+            buf.append(category).append(" - ");
+            buf.append(message);
 
             if (error != null) {
-                builder.append('\n').append(ExceptionUtils.getFullStackTrace(error));
+                buf.append('\n').append(ExceptionUtils.getFullStackTrace(error));
             }
-            return builder.toString();
+            return buf.toString();
         }
     }
 }

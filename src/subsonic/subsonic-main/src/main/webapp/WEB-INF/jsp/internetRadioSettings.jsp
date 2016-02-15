@@ -31,16 +31,14 @@
         </tr>
     </c:forEach>
 
-    <c:if test="${not empty model.internetRadios}">
-        <tr>
-            <th colspan="5" align="left" style="padding-top:1em"><fmt:message key="internetradiosettings.add"/></th>
-        </tr>
-    </c:if>
+    <tr>
+        <th colspan="5" align="left" style="padding-top:1em"><fmt:message key="internetradiosettings.add"/></th>
+    </tr>
 
     <tr>
-        <td><input type="text" name="name" size="20" placeholder="<fmt:message key="internetradiosettings.name"/>"/></td>
-        <td><input type="text" name="streamUrl" size="40" placeholder="<fmt:message key="internetradiosettings.streamurl"/>"/></td>
-        <td><input type="text" name="homepageUrl" size="40" placeholder="<fmt:message key="internetradiosettings.homepageurl"/>"/></td>
+        <td><input type="text" name="name" size="20"/></td>
+        <td><input type="text" name="streamUrl" size="40"/></td>
+        <td><input type="text" name="homepageUrl" size="40"/></td>
         <td align="center" style="padding-left:1em"><input name="enabled" checked type="checkbox" class="checkbox"/></td>
         <td/>
     </tr>

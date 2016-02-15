@@ -144,6 +144,10 @@ public class JAXBWriter {
         }
     }
 
+    public void writeEmptyResponse(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        writeResponse(request, response, createResponse(true));
+    }
+
     public void writeErrorResponse(HttpServletRequest request, HttpServletResponse response,
             RESTController.ErrorCode code, String message) throws Exception {
         Response res = createResponse(false);

@@ -12,7 +12,6 @@
             /WEB-INF/applicationContext-service.xml
             /WEB-INF/applicationContext-security.xml
             /WEB-INF/applicationContext-cache.xml
-            /WEB-INF/applicationContext-sonos.xml
         </param-value>
     </context-param>
 
@@ -26,13 +25,6 @@
     <servlet>
         <servlet-name>subsonic</servlet-name>
         <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
-        <load-on-startup>1</load-on-startup>
-    </servlet>
-
-    <servlet>
-        <display-name>CFX Servlet</display-name>
-        <servlet-name>cxfservlet</servlet-name>
-        <servlet-class>org.apache.cxf.transport.servlet.CXFServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
     </servlet>
 
@@ -81,10 +73,6 @@
     <servlet-mapping>
         <servlet-name>dwr-invoker</servlet-name>
         <url-pattern>/dwr/*</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>cxfservlet</servlet-name>
-        <url-pattern>/ws/*</url-pattern>
     </servlet-mapping>
 
     <welcome-file-list>
@@ -188,11 +176,7 @@
     </filter-mapping>
     <filter-mapping>
         <filter-name>NoCacheFilter</filter-name>
-        <url-pattern>/podcastChannels.view</url-pattern>
-    </filter-mapping>
-    <filter-mapping>
-        <filter-name>NoCacheFilter</filter-name>
-        <url-pattern>/podcastChannel.view</url-pattern>
+        <url-pattern>/podcastReceiver.view</url-pattern>
     </filter-mapping>
     <filter-mapping>
         <filter-name>NoCacheFilter</filter-name>
@@ -205,10 +189,6 @@
     <filter-mapping>
         <filter-name>NoCacheFilter</filter-name>
         <url-pattern>/home.view</url-pattern>
-    </filter-mapping>
-    <filter-mapping>
-        <filter-name>NoCacheFilter</filter-name>
-        <url-pattern>/coverArt.view</url-pattern>
     </filter-mapping>
 
     <filter>

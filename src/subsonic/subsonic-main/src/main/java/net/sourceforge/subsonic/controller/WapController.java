@@ -71,9 +71,7 @@ public class WapController extends MultiActionController {
 
     public ModelAndView wap(HttpServletRequest request, HttpServletResponse response) throws Exception {
         Map<String, Object> map = new HashMap<String, Object>();
-
-        String username = securityService.getCurrentUsername(request);
-        List<MusicFolder> folders = settingsService.getMusicFoldersForUser(username);
+        List<MusicFolder> folders = settingsService.getAllMusicFolders();
 
         if (folders.isEmpty()) {
             map.put("noMusic", true);
@@ -155,8 +153,7 @@ public class WapController extends MultiActionController {
                 List<MediaFile> songs = playlistService.getFilesInPlaylist(ServletRequestUtils.getIntParameter(request, "id"));
                 playQueue.addFiles(false, songs);
             } else if (request.getParameter("random") != null) {
-                List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(securityService.getCurrentUsername(request));
-                List<MediaFile> randomFiles = searchService.getRandomSongs(new RandomSearchCriteria(20, null, null, null, musicFolders));
+                List<MediaFile> randomFiles = searchService.getRandomSongs(new RandomSearchCriteria(20, null, null, null, null));
                 playQueue.addFiles(false, randomFiles);
             }
         }
@@ -176,11 +173,10 @@ public class WapController extends MultiActionController {
     }
 
     public ModelAndView searchResult(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        String username = securityService.getCurrentUsername(request);
         String query = request.getParameter("query");
 
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put("hits", search(query, username));
+        map.put("hits", search(query));
 
         return new ModelAndView("wap/searchResult", "model", map);
     }
@@ -210,14 +206,13 @@ public class WapController extends MultiActionController {
         return settings(request, response);
     }
 
-    private List<MediaFile> search(String query, String username) throws IOException {
+    private List<MediaFile> search(String query) throws IOException {
         SearchCriteria criteria = new SearchCriteria();
         criteria.setQuery(query);
         criteria.setOffset(0);
         criteria.setCount(50);
-        List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(username);
 
-        SearchResult result = searchService.search(criteria, musicFolders, SearchService.IndexType.SONG);
+        SearchResult result = searchService.search(criteria, SearchService.IndexType.SONG);
         return result.getMediaFiles();
     }
 

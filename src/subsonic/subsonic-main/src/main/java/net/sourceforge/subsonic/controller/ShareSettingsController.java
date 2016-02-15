@@ -29,12 +29,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
-import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.ParameterizableViewController;
 
 import net.sourceforge.subsonic.domain.MediaFile;
-import net.sourceforge.subsonic.domain.MusicFolder;
 import net.sourceforge.subsonic.domain.Share;
 import net.sourceforge.subsonic.domain.User;
 import net.sourceforge.subsonic.service.MediaFileService;
@@ -60,7 +58,8 @@ public class ShareSettingsController extends ParameterizableViewController {
         Map<String, Object> map = new HashMap<String, Object>();
 
         if (isFormSubmission(request)) {
-            handleParameters(request);
+            String error = handleParameters(request);
+            map.put("error", error);
             map.put("toast", true);
         }
 
@@ -84,7 +83,7 @@ public class ShareSettingsController extends ParameterizableViewController {
         return "POST".equals(request.getMethod());
     }
 
-    private void handleParameters(HttpServletRequest request) {
+    private String handleParameters(HttpServletRequest request) {
         User user = securityService.getCurrentUser(request);
         for (Share share : shareService.getSharesForUser(user)) {
             int id = share.getId();
@@ -104,25 +103,14 @@ public class ShareSettingsController extends ParameterizableViewController {
             }
         }
 
-        boolean deleteExpired = ServletRequestUtils.getBooleanParameter(request, "deleteExpired", false);
-        if (deleteExpired) {
-            Date now = new Date();
-            for (Share share : shareService.getSharesForUser(user)) {
-                Date expires = share.getExpires();
-                if (expires != null && expires.before(now)) {
-                    shareService.deleteShare(share.getId());
-                }
-            }
-        }
+        return null;
     }
 
     private List<ShareInfo> getShareInfos(HttpServletRequest request) {
         List<ShareInfo> result = new ArrayList<ShareInfo>();
         User user = securityService.getCurrentUser(request);
-        List<MusicFolder> musicFolders = settingsService.getMusicFoldersForUser(user.getUsername());
-
         for (Share share : shareService.getSharesForUser(user)) {
-            List<MediaFile> files = shareService.getSharedFiles(share.getId(), musicFolders);
+            List<MediaFile> files = shareService.getSharedFiles(share.getId());
             if (!files.isEmpty()) {
                 MediaFile file = files.get(0);
                 result.add(new ShareInfo(share, file.isDirectory() ? file : mediaFileService.getParentOf(file)));

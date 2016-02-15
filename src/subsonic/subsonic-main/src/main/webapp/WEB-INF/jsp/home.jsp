@@ -4,8 +4,6 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
-    <script type="text/javascript" src="<c:url value="/dwr/engine.js"/>"></script>
-    <script type="text/javascript" src="<c:url value="/dwr/interface/multiService.js"/>"></script>
 
     <script type="text/javascript" language="javascript">
         function init() {
@@ -22,10 +20,6 @@
             </c:if>
         }
 
-        function changeMusicFolder(musicFolderId) {
-            multiService.setSelectedMusicFolder(musicFolderId, refresh);
-        }
-
         function refresh() {
             top.main.location.href = top.main.location.href;
         }
@@ -37,15 +31,18 @@
     </script>
 </head>
 <body class="mainframe bgcolor1" onload="init();">
-<h1><i class="fa fa-home fa-lg icon"></i>&nbsp;&nbsp;${model.welcomeTitle}</h1>
+<h1>
+    <img src="<spring:theme code="homeImage"/>" alt="">
+    <span style="vertical-align: middle">${model.welcomeTitle}</span>
+</h1>
 
 <c:if test="${not empty model.welcomeSubtitle}">
     <h2>${model.welcomeSubtitle}</h2>
 </c:if>
 
-<h2 style="white-space:normal">
+<h2>
     <c:forTokens items="random newest starred highest frequent recent decade genre alphabetical" delims=" " var="cat" varStatus="loopStatus">
-        <c:if test="${loopStatus.count > 1}">|</c:if>
+        <c:if test="${loopStatus.count > 1}">&nbsp;|&nbsp;</c:if>
         <sub:url var="url" value="home.view">
             <sub:param name="listType" value="${cat}"/>
         </sub:url>
@@ -107,7 +104,6 @@
     <div class="albumThumb">
         <c:import url="coverArt.jsp">
             <c:param name="albumId" value="${album.id}"/>
-            <c:param name="auth" value="${album.hash}"/>
             <c:param name="caption1" value="${fn:escapeXml(album.albumTitle)}"/>
             <c:param name="caption2" value="${fn:escapeXml(album.artist)}"/>
             <c:param name="caption3" value="${caption3}"/>

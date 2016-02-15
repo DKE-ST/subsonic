@@ -54,9 +54,9 @@ public class TranscodeInputStream extends InputStream {
 
         StringBuffer buf = new StringBuffer("Starting transcoder: ");
         for (String s : processBuilder.command()) {
-            buf.append(s).append(" ");
+            buf.append('[').append(s).append("] ");
         }
-        LOG.info(buf);
+        LOG.debug(buf);
 
         process = processBuilder.start();
         processOutputStream = process.getOutputStream();
