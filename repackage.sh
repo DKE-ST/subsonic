@@ -32,7 +32,7 @@ ACEGI_NEEDED=`ls "$SUBSONIC_ROOT/src/subsonic/subsonic-main/target/subsonic/WEB-
 if [ "$ACEGI_NEEDED" = "$ACEGI_JAR" ]; then
 
   cp "$SUBSONIC_ROOT/src/acegi-security/target/$ACEGI_JAR" "$SUBSONIC_ROOT/subsonic_tmp/WEB-INF/lib/"
-  echo $BUILD > "$SUBSONIC_ROOT/subsonic_tmp/WEB-INF/classes/build_number.txt"
+  cp "$SUBSONIC_ROOT/src/build_number.txt" "$SUBSONIC_ROOT/subsonic_tmp/WEB-INF/classes/build_number.txt"
 
   rm "$SUBSONIC_ROOT/subsonic.war"
   jar -cf "$SUBSONIC_ROOT/subsonic.war" *
